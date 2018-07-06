@@ -1,9 +1,9 @@
-from webargs import fields
 import re
 import json
-from dateutil.parser import parse as dtparse
+from webargs import fields
 from functools import partial
 from cereal_lazer.parser import get_parser
+from dateutil.parser import parse as dtparse
 
 
 def serialize(value):
@@ -25,13 +25,7 @@ def parse_type(value):
         return None, value
 
 
-def parser_for(model):
-    def parse_object(value):
-        return model.query.get(value)
-    return parse_object
-
-
-def register_parsable_type(tp, parser):
+def register_serializable_type(tp, parser):
     global TYPES
     TYPES[tp] = parser
 
