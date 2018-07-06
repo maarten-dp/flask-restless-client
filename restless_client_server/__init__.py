@@ -4,9 +4,33 @@ import flask_restless
 from itertools import chain
 from flask import current_app
 from flask import abort, Response
-from sqlalchemy.inspection import inspect
+from sqlalchemy.inspection import inspect as sqla_inspect
 from sqlalchemy.ext.hybrid import hybrid_property
 from contextlib import contextmanager
+from functools import wraps
+import inspect
+from cereal_lazer import DynamicType, register_serializable_type
+from webargs.flaskparser import parser as argparser
+from webargs import fields
+
+
+def serializer_for(model):
+    class ModelSerializer(fields.String):
+        def _deserialize(self, value, attr, data):
+            return model.query.get(value)
+
+        def _serialize(self, value, attr, obj):
+            pass
+    return ModelSerializer
+
+
+def run_object_method(instid, function_name, model, parser_args):
+    instance = model.query.get(instid)
+    if not instance:
+        return {}
+    kwargs = argparser.parse(parser_args, flask.request)
+    res = getattr(instance, function_name)(**kwargs)
+    return json.dumps(DynamicType()._serialize(res, None, None))
 
 
 @contextmanager
@@ -67,10 +91,25 @@ def catch_model_configuration(dispatch_request):
     return wrapper
 
 
+def inject_preprocessor(fn, data_model):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        model = args[0]
+        app = kwargs.get('app', data_model.api_manager.app)
+        if isinstance(model, DataModel):
+            kwargs['preprocessors'] = data_model.processors
+            data_model.register_method_urls(app)
+        blueprint = fn(*args, **kwargs)
+        api_info = data_model.api_manager.created_apis_for[model]
+        data_model.register_method_url(model, app, api_info.collection_name)
+        return blueprint
+    return wrapper
+
+
 class DataModel(object):
     __tablename__ = 'restless-client-datamodel'
 
-    def __init__(self, api_manager):
+    def __init__(self, api_manager, **options):
         """
         In Flask-Restless, it is up to you to choose which models you would like
         to make available as an api. It should also be a choice to expose your
@@ -79,14 +118,15 @@ class DataModel(object):
 
         This object functions as a puppet model to give the user the feeling 
         like they are registering just another model they want to expose.
-
-        The only requirement is that you give this object's processors attribute
-        as a parameter to the preprocessor when registering the model with
-        Flask-Restless.
         """
+        api_manager.create_api_blueprint = inject_preprocessor(
+            api_manager.create_api_blueprint, self
+        )
         self.api_manager = api_manager
         self.data_model = {}
         self.flag_for_inheritance = {}
+        self.options = options
+        self.model_methods = {}
 
     @property
     def processors(self):
@@ -116,6 +156,7 @@ class DataModel(object):
                     if model is self:
                         continue
                     kwargs = self.get_restless_model_conf(model, api_info)
+                    kwargs['bp_name'] = api_info.blueprint_name
                     self.register_model(model, **kwargs)
         # update child models with the attributes and relations of their parent
         if self.flag_for_inheritance:
@@ -133,6 +174,15 @@ class DataModel(object):
             self.data_model[model]['relations'].update(irels)
 
     def get_restless_model_conf(self, model, api_info):
+        """
+        This method will try to find the corresponding view within the registered
+        blueprints in flask-restless and momentarily replace it with a function
+        that is able to distil the relevant infomation we need to construct a
+        datamodel that is conform to what constraints were defined in 
+        flask restiless when registering models. 
+        Afterwards it will replace the function handle back to its original
+        function.
+        """
         api_format = flask_restless.APIManager.APINAME_FORMAT
         endpoint = api_format.format('{1}.{0}'.format(*api_info))
 
@@ -147,12 +197,18 @@ class DataModel(object):
             'excluded': result['exclude']
         }
 
-    def register_model(self, model, collection_name, included, excluded):
+    def register_model(self, model, collection_name, bp_name, included, excluded):
+        """
+        Loops over all attributes, relations, hybrid properties and merges
+        inherited classes with their parent and puts this information in a 
+        serialisable dictionary
+        """
         if model is self:
             return
         attribute_dict = {}
         foreign_keys = {}
         tbl = model.__table__
+        register_serializable_type(model.__name__, serializer_for(model))
 
         def is_valid(column):
             column = column.split('.')[-1]
@@ -171,7 +227,7 @@ class DataModel(object):
                 attribute_dict[column.name] = ctype
 
         # relations
-        for rel in inspect(model).relationships:
+        for rel in sqla_inspect(model).relationships:
             if is_valid(str(rel.key)):
                 foreign_keys[rel.key] = {
                     'foreign_model': rel.mapper.class_.__name__,
@@ -180,7 +236,7 @@ class DataModel(object):
                 }
 
         # hybrid
-        hybrid_properties = [a for a in inspect(model).all_orm_descriptors
+        hybrid_properties = [a for a in sqla_inspect(model).all_orm_descriptors
                              if isinstance(a, hybrid_property)]
         for attribute in hybrid_properties:
             if is_valid(attribute):
@@ -199,4 +255,62 @@ class DataModel(object):
             'collection_name': collection_name,
             'attributes': attribute_dict,
             'relations': foreign_keys,
+            'methods': self.model_methods.get(collection_name, {})
         }
+
+    def register_method_urls(self, app):
+        for model, api_info in self.api_manager.created_apis_for.items():
+            if model is self:
+                continue
+            self.register_method_url(model, app, api_info.collection_name)
+
+    def register_method_url(self, model, app, collection_name):
+        methods = self.compile_method_list(model)
+        self.model_methods[collection_name] = methods
+        self.add_method_endpoints(collection_name, model, methods, app)
+
+    def compile_method_list(self, model):
+        methods = {}
+        include_internal = self.options.get('include_model_internal_functions', False)
+        for name, fn in inspect.getmembers(model, predicate=inspect.isfunction):
+            if name.startswith('__'):
+                continue
+            if name.startswith('_') and not include_internal:
+                continue
+
+            spec = inspect.getargspec(fn)
+            # get the params
+            if spec[3]:
+                required = spec[0][:-len(spec[3])]
+                optional = spec[0][-len(spec[3]):]
+            else:
+                required = spec[0]
+                optional = []
+            if 'self' in required:
+                required.remove('self')
+            methods[name] = {
+                'required_params': required,
+                'optional_params': optional,
+            }
+        return methods
+
+    def add_method_endpoints(self, collection_name, model, methods, app):
+        for method, details in methods.items():
+            fmt = '/api/method/{0}/<instid>/{1}'
+            instance_endpoint = fmt.format(collection_name, method)
+            parser_args = {}
+            for param in chain(details['required_params'], details['optional_params']):
+                required = param in details['required_params']
+                parser_args[param] = DynamicType(required=required)
+            app.add_url_rule(
+                instance_endpoint,
+                methods=['GET'],
+                defaults={
+                    'function_name': method,
+                    'model': model,
+                    'parser_args': parser_args
+                },
+                view_func=run_object_method)
+
+        
+
