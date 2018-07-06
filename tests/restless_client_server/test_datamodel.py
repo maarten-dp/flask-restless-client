@@ -125,6 +125,11 @@ def exposed_method_model_app(app):
                     return_dict[key] = getattr(self, key)
             return return_dict
 
+        def what_does_this_func_even_do(self, person):
+            assert isinstance(person, Person)
+            return person
+
+
     db.create_all()
 
     db.session.add(Person(
@@ -141,7 +146,7 @@ def exposed_method_model_app(app):
     return app
 
 
-def test_expose_methods(exposed_method_model_app):
+def test_exposed_methods(exposed_method_model_app):
     app = exposed_method_model_app
     with app.app_context():
         client = app.test_client()
@@ -163,13 +168,17 @@ def test_expose_methods(exposed_method_model_app):
                 'get_attrs_based_on_dict': {
                     'required_params': ['args'],
                     'optional_params': [],
-                }
+                },
+                'what_does_this_func_even_do': {
+                    'required_params': ['person'],
+                    'optional_params': [],
+                },
             }
         }
     }
     assert res == expected
 
-def test_call_expose_method_int(exposed_method_model_app):
+def test_call_exposed_method_int(exposed_method_model_app):
     app = exposed_method_model_app
     with app.app_context():
         client = app.test_client()
@@ -180,7 +189,7 @@ def test_call_expose_method_int(exposed_method_model_app):
     assert res == expected
 
 
-def test_call_expose_method_dict(exposed_method_model_app):
+def test_call_exposed_method_dict(exposed_method_model_app):
     app = exposed_method_model_app
     with app.app_context():
         client = app.test_client()
@@ -188,4 +197,15 @@ def test_call_expose_method_dict(exposed_method_model_app):
         url = '/api/method/person/1/get_attrs_based_on_dict{}'
         res = json.loads(client.get(url.format(params)).data.decode('utf-8'))
     expected = '<dict|<str|name|>:<str|Jim Darkmagic|>|>'
+    assert res == expected
+
+
+def test_call_exposed_model_arg(exposed_method_model_app):
+    app = exposed_method_model_app
+    with app.app_context():
+        client = app.test_client()
+        params = '?person=<Person|1|>'
+        url = '/api/method/person/1/what_does_this_func_even_do{}'
+        res = json.loads(client.get(url.format(params)).data.decode('utf-8'))
+    expected = '<Person|1|>'
     assert res == expected

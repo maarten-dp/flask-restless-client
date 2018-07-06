@@ -20,7 +20,7 @@ def serializer_for(model):
             return model.query.get(value)
 
         def _serialize(self, value, attr, obj):
-            pass
+            return value.id
     return ModelSerializer
 
 
@@ -208,7 +208,6 @@ class DataModel(object):
         attribute_dict = {}
         foreign_keys = {}
         tbl = model.__table__
-        register_serializable_type(model.__name__, serializer_for(model))
 
         def is_valid(column):
             column = column.split('.')[-1]
@@ -268,6 +267,8 @@ class DataModel(object):
         methods = self.compile_method_list(model)
         self.model_methods[collection_name] = methods
         self.add_method_endpoints(collection_name, model, methods, app)
+        if not model is self:
+            register_serializable_type(model.__name__, serializer_for(model))
 
     def compile_method_list(self, model):
         methods = {}
