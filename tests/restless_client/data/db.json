@@ -1,0 +1,135 @@
+{
+  "Object1": [
+    {
+      "relation2": {
+        "attribute1": "o3a11",
+        "id": 1
+      },
+      "attribute3": "o1a31",
+      "id": 1,
+      "attribute1": "o1a11",
+      "relation1": [],
+      "attribute2": 1
+    },
+    {
+      "relation2": {
+        "attribute1": "o3a11",
+        "id": 1
+      },
+      "attribute3": "o1a32",
+      "id": 2,
+      "attribute1": "o1a12",
+      "relation1": [{"attribute1": "o2a11","id": 1}, {"attribute1": "o2a12","id": 2}],
+      "attribute2": 2
+    },
+    {
+      "relation2": {
+        "attribute1": "o3a11",
+        "id": 1
+      },
+      "attribute3": "o1a33",
+      "id": 3,
+      "attribute1": "o1a13",
+      "relation1": [{"attribute1": "o2a13","id": 3}],
+      "attribute2": 3
+    },
+    {
+      "relation2": {
+        "attribute1": "o3a12",
+        "id": 2
+      },
+      "attribute3": "o1a34",
+      "id": 4,
+      "attribute1": "o1a14",
+      "relation1": [],
+      "attribute2": 4
+    },
+    {
+      "relation2": {
+        "attribute1": "o3a12",
+        "id": 2
+      },
+      "attribute3": "o1a35",
+      "id": 5,
+      "attribute1": "o1a15",
+      "relation1": [],
+      "attribute2": 5
+    }
+  ],
+  "Object3": [
+    {
+      "attribute1": "o3a11",
+      "relation2": [
+        {
+          "attribute1": "o1a11",
+          "attribute3": "o1a31",
+          "attribute2": "o1a21",
+          "id": 1
+        },
+        {
+          "attribute1": "o1a12",
+          "attribute3": "o1a32",
+          "attribute2": "o1a22",
+          "id": 2
+        },
+        {
+          "attribute1": "o1a13",
+          "attribute3": "o1a33",
+          "attribute2": "o1a23",
+          "id": 3
+        }
+      ],
+      "id": 1
+    },
+    {
+      "attribute1": "o3a12",
+      "relation2": [
+        {
+          "attribute1": "o1a14",
+          "attribute3": "o1a34",
+          "attribute2": "o1a24",
+          "id": 4
+        },
+        {
+          "attribute1": "o1a15",
+          "attribute3": "o1a35",
+          "attribute2": "o1a25",
+          "id": 5
+        }
+      ],
+      "id": 2
+    }
+  ],
+  "Object2": [
+    {
+      "attribute1": "o2a11",
+      "relation1": {
+        "attribute1": "o1a12",
+        "attribute3": "o1a32",
+        "attribute2": "o1a22",
+        "id": 2
+      },
+      "id": 1
+    },
+    {
+      "attribute1": "o2a12",
+      "relation1": {
+        "attribute1": "o1a12",
+        "attribute3": "o1a32",
+        "attribute2": "o1a22",
+        "id": 2
+      },
+      "id": 2
+    },
+    {
+      "attribute1": "o2a13",
+      "relation1": {
+        "attribute1": "o1a13",
+        "attribute3": "o1a33",
+        "attribute2": "o1a23",
+        "id": 3
+      },
+      "id": 3
+    }
+  ]
+}

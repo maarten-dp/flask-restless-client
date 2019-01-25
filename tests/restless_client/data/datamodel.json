@@ -1,0 +1,51 @@
+{
+  "Object1": {
+    "attributes": {
+      "attribute1": "string",
+      "attribute3": "date",
+      "attribute2": "integer",
+      "id": "integer"
+    },
+    "methods": {},
+    "relations": {
+      "relation2": {
+        "backref": "relation2",
+        "relation_type": "o2m",
+        "foreign_model": "Object3"
+      },
+      "relation1": {
+        "backref": "relation1",
+        "relation_type": "m2o",
+        "foreign_model": "Object2"
+      }
+    }
+  },
+  "Object3": {
+    "attributes": {
+      "attribute1": "string",
+      "id": "integer"
+    },
+    "methods": {},
+    "relations": {
+      "relation2": {
+        "backref": "relation2",
+        "relation_type": "m2o",
+        "foreign_model": "Object1"
+      }
+    }
+  },
+  "Object2": {
+    "attributes": {
+      "attribute1": "string",
+      "id": "integer"
+    },
+    "methods": {},
+    "relations": {
+      "relation1": {
+        "backref": "relation1",
+        "relation_type": "o2m",
+        "foreign_model": "Object1"
+      }
+    }
+  }
+}
