@@ -9,28 +9,26 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from contextlib import contextmanager
 from functools import wraps
 import inspect
-from cereal_lazer import DynamicType, register_serializable_type
-from webargs.flaskparser import parser as argparser
-from webargs import fields
+from cereal_lazer import dumps, loads, register_class
 
 
-def serializer_for(model):
-    class ModelSerializer(fields.String):
-        def _deserialize(self, value, attr, data):
-            return model.query.get(value)
+def register_serializer(model):
+    def load_model(value):
+        return model.query.get(value)
 
-        def _serialize(self, value, attr, obj):
-            return value.id
-    return ModelSerializer
+    def serialize_model(value):
+        # TODO refine for composite keys
+        return value.id
+
+    register_class(model.__name__, model, serialize_model, load_model)
 
 
-def run_object_method(instid, function_name, model, parser_args):
+def run_object_method(instid, function_name, model):
     instance = model.query.get(instid)
     if not instance:
         return {}
-    kwargs = argparser.parse(parser_args, flask.request)
-    res = getattr(instance, function_name)(**kwargs)
-    return json.dumps(DynamicType()._serialize(res, None, None))
+    kwargs = loads(flask.request.form['method_params'], fmt='msgpack')
+    return dumps(getattr(instance, function_name)(**kwargs), fmt='msgpack')
 
 
 @contextmanager
@@ -268,7 +266,7 @@ class DataModel(object):
         self.model_methods[collection_name] = methods
         self.add_method_endpoints(collection_name, model, methods, app)
         if not model is self:
-            register_serializable_type(model.__name__, serializer_for(model))
+            register_serializer(model)
 
     def compile_method_list(self, model):
         methods = {}
@@ -296,20 +294,15 @@ class DataModel(object):
         return methods
 
     def add_method_endpoints(self, collection_name, model, methods, app):
-        for method, details in methods.items():
+        for method in methods.keys():
             fmt = '/api/method/{0}/<instid>/{1}'
             instance_endpoint = fmt.format(collection_name, method)
-            parser_args = {}
-            for param in chain(details['required_params'], details['optional_params']):
-                required = param in details['required_params']
-                parser_args[param] = DynamicType(required=required)
             app.add_url_rule(
                 instance_endpoint,
                 methods=['GET'],
                 defaults={
                     'function_name': method,
                     'model': model,
-                    'parser_args': parser_args
                 },
                 view_func=run_object_method)
 

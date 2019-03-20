@@ -1,11 +1,15 @@
-import json
-import flask_restless
-from restless_client_server import DataModel
-from flask_sqlalchemy import SQLAlchemy
 from datetime import date
-import pytest
+from unittest.mock import patch
 
-def test_datamodel(app):
+import pytest
+import flask_restless
+import cereal_lazer as sr
+from flask_sqlalchemy import SQLAlchemy
+
+from restless_client_server import DataModel
+
+
+def test_datamodel(app, client_maker):
     db = SQLAlchemy(app)
 
     class Person(db.Model):
@@ -52,13 +56,12 @@ def test_datamodel(app):
             'relations': {},
             'methods': {}}}
 
-    with app.app_context():
-        client = app.test_client()
-        res = json.loads(client.get('/api/restless-client-datamodel').data.decode('utf-8'))
+    client = client_maker(app)
+    res = client.get('http://app/api/restless-client-datamodel').json()
     assert res == expected
 
 
-def test_inheritance(app):
+def test_inheritance(app, client_maker):
     db = SQLAlchemy(app)
 
     class Person(db.Model):
@@ -96,9 +99,8 @@ def test_inheritance(app):
             'relations': {},
             'methods': {}}}
 
-    with app.app_context():
-        client = app.test_client()
-        res = json.loads(client.get('/api/restless-client-datamodel').data.decode('utf-8'))
+    client = client_maker(app)
+    res = client.get('http://app/api/restless-client-datamodel').json()
     assert res == expected
 
 
@@ -146,11 +148,9 @@ def exposed_method_model_app(app):
     return app
 
 
-def test_exposed_methods(exposed_method_model_app):
-    app = exposed_method_model_app
-    with app.app_context():
-        client = app.test_client()
-        res = json.loads(client.get('/api/restless-client-datamodel').data.decode('utf-8'))
+def test_exposed_methods(exposed_method_model_app, client_maker):
+    client = client_maker(exposed_method_model_app)
+    res = client.get('http://app/api/restless-client-datamodel').json()
 
     expected = {
         'Person': {
@@ -178,34 +178,31 @@ def test_exposed_methods(exposed_method_model_app):
     }
     assert res == expected
 
-def test_call_exposed_method_int(exposed_method_model_app):
-    app = exposed_method_model_app
-    with app.app_context():
-        client = app.test_client()
-        params = '?y_offset=<int|10|>&m_offset=<int|3|>'
-        url = '/api/method/person/1/age_in_x_years_y_months{}'
-        res = json.loads(client.get(url.format(params)).data.decode('utf-8'))
-    expected = '<date|2028-04-01|>'
+
+def to_method_params(body):
+    return {'method_params': sr.dumps(body, fmt='msgpack')}
+    
+
+def test_call_exposed_method(exposed_method_model_app, client_maker):
+    client = client_maker(exposed_method_model_app)
+    url = 'http://app/api/method/person/1/age_in_x_years_y_months'
+    body = to_method_params({'y_offset': 10, 'm_offset': 3})
+    res = sr.loads(client.get(url, data=body).text, fmt='msgpack')
+    expected = date(2028, 4, 1)
     assert res == expected
 
 
-def test_call_exposed_method_dict(exposed_method_model_app):
-    app = exposed_method_model_app
-    with app.app_context():
-        client = app.test_client()
-        params = '?args=<dict|<str|name|>:<bool|1|>,<str|birth_date|>:<bool|False|>|>'
-        url = '/api/method/person/1/get_attrs_based_on_dict{}'
-        res = json.loads(client.get(url.format(params)).data.decode('utf-8'))
-    expected = '<dict|<str|name|>:<str|Jim Darkmagic|>|>'
-    assert res == expected
+def test_call_exposed_method(exposed_method_model_app, client_maker):
+    client = client_maker(exposed_method_model_app)
+    url = 'http://app/api/method/person/1/what_does_this_func_even_do'
 
+    class Person:
+        id = 1
 
-def test_call_exposed_model_arg(exposed_method_model_app):
-    app = exposed_method_model_app
-    with app.app_context():
-        client = app.test_client()
-        params = '?person=<Person|1|>'
-        url = '/api/method/person/1/what_does_this_func_even_do{}'
-        res = json.loads(client.get(url.format(params)).data.decode('utf-8'))
-    expected = '<Person|1|>'
-    assert res == expected
+    with patch('cereal_lazer.NAME_BY_CLASS') as NAME_BY_CLASS:
+        NAME_BY_CLASS.__getitem__.return_value = 'Person'
+        with patch('cereal_lazer.serialize.all.CLASSES') as CLASSES:
+            CLASSES.items.return_value = [(Person, (lambda x: x.id, None))]
+            body = to_method_params({'person': Person()})
+    res = sr.loads(client.get(url, data=body).text, fmt='msgpack')
+    assert res.name == 'Jim Darkmagic'

@@ -1,101 +1,50 @@
-import re
-import json
-from webargs import fields
-from functools import partial
-from cereal_lazer.parser import get_parser
-from dateutil.parser import parse as dtparse
+"""
+Small layer on top of serializer that:
+- includes some additional objects already registered
+- makes the serializing http friendly
+- doing a name based registering on non-builtins
+
+To better fit the needs.
+"""
+import serialize
+from datetime import date, datetime
+import pytz
 
 
-def serialize(value):
-    return DynamicType()._serialize(value, None, None)
+NAME_BY_CLASS = {}
 
 
-def deserialize(value):
-    return DynamicType()._deserialize(value, None, None)
+def encode_helper(obj, to_builtin):
+    return dict(__class_name__= NAME_BY_CLASS[obj.__class__],
+                __dumped_obj__=to_builtin(obj))
 
 
-def parse_type(value):
-    # looking for type B:
-    # the parser fails if type A comes before type B where A is a substring of B
-    # i.e.: date, datetime
-    types = sorted(TYPES.keys(), key=lambda x: len(x), reverse=True)
-    try:
-        return get_parser(types).parseString(value)
-    except Exception:
-        return None, value
+serialize.all.encode_helper = encode_helper
 
 
-def register_serializable_type(tp, parser):
-    global TYPES
-    TYPES[tp] = parser
+def register_class(name, klass, to_builtin, from_builtin):
+    helper = serialize.all.ClassHelper(to_builtin, from_builtin)
+    serialize.all.CLASSES_BY_NAME[name] = helper
+    NAME_BY_CLASS[klass] = name
+    serialize.register_class(klass, to_builtin, from_builtin)
 
 
-def _deserialize(tp, value):
-    return TYPES[tp]().deserialize(value, None, None)
+def dumps(body, fmt):
+    res = serialize.dumps(body, fmt)
+    if fmt == 'msgpack':
+        res = res.hex()
+    return res
 
 
-class DynamicType(fields.String):
-    def _deserialize(self, value, attr, data):
-        tp, value = parse_type(value)
-        if not tp:
-            return value
-        return _deserialize(tp, value)
-
-    def _serialize(self, value, attr, obj):
-        type_str = type(value).__name__
-        value =  TYPES.get(type_str, fields.String)()._serialize(value, attr, obj)
-        if type_str not in TYPES:
-            type_str = 'str'
-        return '<{}|{}|>'.format(type_str, value)
+def loads(body, fmt):
+    if fmt == 'msgpack':
+        body = bytes.fromhex(body)
+    return serialize.loads(body, fmt)
 
 
-class Dict(fields.Dict):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.container = DynamicType()
-
-    def _deserialize(self, value, attr, data):
-        c = partial(self.container._deserialize, data=data, attr=attr)
-        return {_deserialize(*k): _deserialize(*v) for k,v in value}
-
-    def _serialize(self, value, attr, obj):
-        c = partial(self.container._serialize, obj=obj, attr=attr)
-        return ','.join(['{}:{}'.format(c(k), c(v)) for k, v in value.items()])
-
-
-class List(fields.String):
-    type_cls = list
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.container = DynamicType()
-
-    def _deserialize(self, value, attr, data):
-        c = partial(self.container._deserialize, data=data, attr=attr)
-        return self.type_cls([_deserialize(*v) for v in value])
-
-    def _serialize(self, value, attr, obj):
-        c = partial(self.container._serialize, obj=obj, attr=attr)
-        return ','.join([c(v) for v in value])
-
-
-class Set(List):
-    type_cls = set
-
-
-class Tuple(List):
-    type_cls = tuple
-
-
-TYPES = {
-    'int': fields.Integer,
-    'float': fields.Number,
-    'str': fields.String,
-    'list': List,
-    'set': Set,
-    'tuple': Tuple,
-    'dict': Dict,
-    'bool': fields.Boolean,
-    'date': fields.Date,
-    'datetime': fields.DateTime,
-    'time': fields.Time,
-}
+register_class(
+    datetime.__name__,
+    datetime,
+    lambda x: (x.timetuple()[:-3], str(x.tzinfo) if x.tzinfo else None),
+    lambda x: datetime(*x[0], tzinfo=pytz.timezone(x[1]) if x[1] else x[1]))
+register_class(date.__name__, date, lambda x: x.timetuple()[:3], lambda x: date(*x))
