@@ -5,9 +5,10 @@ from pytz import UTC
 import logging
 from enum import Enum
 from contextlib import contextmanager
+from collections import namedtuple
 
 LIKELY_PARSABLE_DATETIME = r"^(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2})|(\d{8}T\d{6}Z?)"
-logger = logging.getLogger('bluesnake-client')
+logger = logging.getLogger('restless-client')
 
 LOCAL_ID_COUNT = 0
 DEPTH = 0
@@ -15,12 +16,16 @@ DEPTH = 0
 
 class State(Enum):
     VOID = 1
-    LOADED = 2
-    LOADING = 3
-    LOADABLE = 4
-    NOT_LOADABLE = 5
-    DIRTY = 6
-    NEW = 7
+    UNLOADED = 2
+    LOADED = 3
+    LOADING = 4
+    LOADABLE = 5
+    NOT_LOADABLE = 6
+    DIRTY = 7
+    NEW = 8
+
+
+RelationInfo = namedtuple('RelationInfo', 'type model_name model')
 
 
 def generate_id():
@@ -78,7 +83,7 @@ class TypedList(list):
         self.for_attr = for_attr
 
     def append(self, item):
-        if self.parent._parent.state != State.LOADING:
+        if self.parent._client.state != State.LOADING:
             self.parent._dirty.append(self.for_attr)
         cls_name = item.__class__.__name__
         if not isinstance(item, self.type):
@@ -86,7 +91,7 @@ class TypedList(list):
             raise TypeError(msg.format(self.type.__name__, cls_name))
         if item in self:
             msg = 'Object {} with id {} is already in this list'
-            raise UserException(msg.format(self.type.__name__, item.id))
+            raise UserException(msg.format(self.type.__name__, item._pkval))
         super(TypedList, self).append(item)
         if self.for_attr:
             self._update_backref(item, self.for_attr)
@@ -112,12 +117,12 @@ class TypedList(list):
                     else:
                         if self.parent not in lst:
                             list.append(lst, self.parent)
-                    if self.parent._parent.state != State.LOADING:
+                    if self.parent._client.state != State.LOADING:
                         item._dirty.append(rel_details['backref'])
 
     def remove(self, item):
         super(TypedList, self).remove(item)
-        if self.parent._parent.state != State.LOADING:
+        if self.parent._client.state != State.LOADING:
             self.parent._dirty.append(self.for_attr)
         if self.for_attr:
             self._update_backref(item, self.for_attr, remove=True)
@@ -190,3 +195,11 @@ def pretty_logger(depth=2):
 
 def get_depth():
     return DEPTH
+
+
+def rel_info(client, relations, name):
+    rel_type = relations[name]['relation_type']
+    rel_model_name = relations[name]['foreign_model']
+    rel_model = client._classes[rel_model_name]
+    return RelationInfo(rel_type, rel_model_name, rel_model)
+

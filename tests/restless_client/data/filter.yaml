@@ -1,0 +1,49 @@
+Object3:
+  ref: attribute1
+  definition:
+    attribute1: String
+    relation2: Backref|Object1
+  instances:
+    - attribute1: o3a11
+    - attribute1: o3a12
+Object1:
+  ref: attribute1
+  definition:
+      attribute1: String
+      attribute2: Integer
+      attribute3: String
+      relation1: Backref|Object2
+      relation2: relationship|Object3
+  instances:
+    - attribute1: o1a11
+      attribute2: 1
+      attribute3: o1a31
+      relation2: o3a11
+    - attribute1: o1a12
+      attribute2: 2
+      attribute3: o1a32
+      relation2: o3a11
+    - attribute1: o1a13
+      attribute2: 3
+      attribute3: o1a33
+      relation2: o3a11
+    - attribute1: o1a14
+      attribute2: 4
+      attribute3: o1a34
+      relation2: o3a12
+    - attribute1: o1a15
+      attribute2: 5
+      attribute3: o1a35
+      relation2: o3a12
+Object2:
+  ref: attribute1
+  definition:
+    attribute1: String
+    relation1: relationship|Object1
+  instances:
+    - attribute1: o2a11
+      relation1: o1a12
+    - attribute1: o2a12
+      relation1: o1a12
+    - attribute1: o2a13
+      relation1: o1a13

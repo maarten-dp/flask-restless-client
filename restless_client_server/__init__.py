@@ -6,6 +6,11 @@ from flask import current_app
 from flask import abort, Response
 from sqlalchemy.inspection import inspect as sqla_inspect
 from sqlalchemy.ext.hybrid import hybrid_property
+from flask_restless.helpers import (primary_key_name,
+                                    get_related_association_proxy_model)
+from sqlalchemy.ext.associationproxy import AssociationProxy
+from sqlalchemy.orm.properties import RelationshipProperty, ColumnProperty
+
 from contextlib import contextmanager
 from functools import wraps
 import inspect
@@ -226,11 +231,17 @@ class DataModel(object):
         # relations
         for rel in sqla_inspect(model).relationships:
             if is_valid(str(rel.key)):
+                direction = rel.direction.name
+                if rel.direction.name == 'ONETOMANY' and not rel.uselist:
+                    direction = 'ONETOONE'
                 foreign_keys[rel.key] = {
                     'foreign_model': rel.mapper.class_.__name__,
-                    'relation_type': rel.direction.name,
+                    'relation_type': direction,
                     'backref': rel.back_populates,
                 }
+                if rel.direction.name == 'MANYTOONE':
+                    local_id = list(rel.local_columns)[0].key
+                    foreign_keys[rel.key]['local_column'] = local_id
 
         # hybrid
         hybrid_properties = [a for a in sqla_inspect(model).all_orm_descriptors
@@ -244,11 +255,46 @@ class DataModel(object):
             db = self.api_manager.flask_sqlalchemy_db
             inheriting_from = []
             for kls in model.__bases__:
-                if issubclass(kls, db.Model):
+                if issubclass(kls, db.Model) and kls is not db.Model:
                     inheriting_from.append(kls.__name__)
-            self.flag_for_inheritance[model.__name__] = inheriting_from
+            if inheriting_from:
+                self.flag_for_inheritance[model.__name__] = inheriting_from
+
+        # association proxies
+        proxies = [
+            (k, v.__get__(None, model)) for k, v in model.__dict__.items() if
+            isinstance(v, AssociationProxy)
+            # keep the proxies where the remote attr has a property,
+            # as we need this property to identify the remote class
+            # but not all cases have it.
+            # v == v.__get__(None, model), but we do this to bind the model to
+            # the remote_attr and from then on it's usable for further inspection
+            and hasattr(v.__get__(None, model).remote_attr, 'property')
+        ]
+        for name, attr in proxies:
+            # check if the remote attr is a relation (for example, an association
+            # table) or if it's an attribute
+            if isinstance(attr.remote_attr.property, RelationshipProperty):
+                # use the helper function from flask restless to identify the
+                # remote class
+                remote_class = get_related_association_proxy_model(attr)
+                foreign_keys[name] = {
+                    'foreign_model': remote_class.__name__,
+                    'relation_type': 'MANYTOONE' if attr.scalar else 'ONETOMANY',
+                    'is_proxy': True
+                }
+            elif isinstance(attr.remote_attr.property, ColumnProperty):
+                # The columns of remote attr will always be 1 element in size
+                # as the columns is refering to itself (i.e. the remote attr)
+                column = attr.remote_attr.property.columns[0]
+                attribute_dict[name] = column.type.__class__.__name__.lower()
+
+        # PK identification
+        with self.api_manager.app.app_context():
+            pk_name = primary_key_name(model)
 
         self.data_model[model.__name__] = {
+            'pk_name': pk_name,
             'collection_name': collection_name,
             'attributes': attribute_dict,
             'relations': foreign_keys,

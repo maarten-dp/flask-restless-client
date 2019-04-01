@@ -1,6 +1,7 @@
 import logging
+import json
 
-logger = logging.getLogger('bluesnake-client')
+logger = logging.getLogger('restless-client')
 
 INVERT_OPERATORS = [
     ('==', '!='), ('>', '<='), ('<', '>='), ('>=', '<'),
@@ -117,16 +118,12 @@ class FilterMixIn:
         return ComparisonResult(self.attribute, op, self._clean(val))
 
     def _clean(self, val):
-        if hasattr(val, '__bases__'):
-            for klass in val.__bases__:
-                if klass.__name__ == 'BaseObject':
-                    val = val.id
         return val
 
 
 class Query:
-    def __init__(self, client, cls):
-        self.client = client
+    def __init__(self, connection, cls):
+        self.connection = connection
         self.cls = cls
         self._query = {}
 
@@ -170,42 +167,33 @@ class Query:
             self._query['group_by'] = group_by
         return self
 
+    def first(self):
+        self.limit(1)
+        self.order_by(**{self.cls._pk_name: 'asc'})
+        return self.one()
+
+    def last(self):
+        self.limit(1)
+        self.order_by(**{self.cls._pk_name: 'desc'})
+        return self.one()
+
     def one(self):
         self._query['single'] = True
-        return self.client.object_loader.load_objs(self.cls, q=self._query)
+        return self.connection.load_query(
+            self.cls, single=True, q=self._get_query())
 
     def one_or_none(self):
         try:
             return self.one()
         except Exception as e:
-            if 'Bad Request' in str(e):
+            if 'Multiple results found' in str(e):
                 raise e
-            return None
 
     def all(self):
-        kwargs = {}
-        if self._query:
-            kwargs['q'] = self._query
-        return self.client.object_loader.load_objs(self.cls, **kwargs)
+        return self.connection.load_query(self.cls, q=self._get_query())
 
     def get(self, oid):
-        return self.client.object_loader.load_obj(self.cls, oid)
+        return self.connection.load(self.cls, oid)
 
-    # def resolve_relations_queries(self):
-    #     # restless doesn't seem to handle complex relations very well, so
-    #     # we're doing it the hard way and loading every step of the relation
-    #     filters = []
-    #     for query in self._relational_queries:
-    #         res = self._resolve_initial(query.name.pop(0), query.op, query.val)
-    #         for name in query.name:
-    #             res = self._resolve(name, res)
-    #         filters.append(name.parent.id.in_([r.id for r in res]).to_raw_filter())
-    #     return filters
-
-    # def _resolve_initial(self, history, op, val):
-    #     raw = ComparisonResult(history.parent_attribute, op, val).to_raw_filter()
-    #     return self.client.object_loader.load_objs(history.parent, q={'filters': [raw]})
-
-    # def _resolve(self, history, res):
-    #     ids = [r.id for r in res]
-    #     return [o for o in history.klass.all() if o.id in ids]
+    def _get_query(self):
+        return json.dumps(self._query)

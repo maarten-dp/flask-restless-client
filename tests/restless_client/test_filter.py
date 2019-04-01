@@ -1,93 +1,105 @@
 import pytest
 from requests.exceptions import HTTPError
-from bluesnake_client.filter import FilterMixIn
+from restless_client.filter import FilterMixIn
 
 
-def test_eq(cl):
-    o = cl.Object1
+def test_eq(fcl):
+    o = fcl.Object1
     res = o.query.filter(o.attribute2 == 4).all()
     assert len(res) == 1
     assert res[0].id == 4 and res[0].attribute2 == 4
 
 
-def test_ne(cl):
-    o = cl.Object1
+def test_ne(fcl):
+    o = fcl.Object1
     res = o.query.filter(o.attribute2 != 4).all()
     assert len(res) == 4
     assert sorted([ob.id for ob in res]) == [1, 2, 3, 5]
     assert sorted([ob.attribute2 for ob in res]) == [1, 2, 3, 5]
 
 
-def test_invert(cl):
-    o = cl.Object1
+def test_invert(fcl):
+    o = fcl.Object1
     res = o.query.filter(~(o.attribute2 == 4)).all()
     assert len(res) == 4
     assert sorted([ob.id for ob in res]) == [1, 2, 3, 5]
     assert sorted([ob.attribute2 for ob in res]) == [1, 2, 3, 5]
 
 
-def test_lt(cl):
-    o = cl.Object1
+def test_lt(fcl):
+    o = fcl.Object1
     res = o.query.filter(o.attribute2 < 4).all()
     assert len(res) == 3
     assert sorted([ob.id for ob in res]) == [1, 2, 3]
     assert sorted([ob.attribute2 for ob in res]) == [1, 2, 3]
 
 
-def test_lte(cl):
-    o = cl.Object1
+def test_lte(fcl):
+    o = fcl.Object1
     res = o.query.filter(o.attribute2 <= 4).all()
     assert len(res) == 4
     assert sorted([ob.id for ob in res]) == [1, 2, 3, 4]
     assert sorted([ob.attribute2 for ob in res]) == [1, 2, 3, 4]
 
 
-def test_gt(cl):
-    o = cl.Object1
+def test_gt(fcl):
+    o = fcl.Object1
     res = o.query.filter(o.attribute2 > 4).all()
     assert len(res) == 1
     assert sorted([ob.id for ob in res]) == [5]
     assert sorted([ob.attribute2 for ob in res]) == [5]
 
 
-def test_gte(cl):
-    o = cl.Object1
+def test_gte(fcl):
+    o = fcl.Object1
     res = o.query.filter(o.attribute2 >= 4).all()
     assert len(res) == 2
     assert sorted([ob.id for ob in res]) == [4, 5]
     assert sorted([ob.attribute2 for ob in res]) == [4, 5]
 
 
-def test_in(cl):
-    o = cl.Object1
+def test_in(fcl):
+    o = fcl.Object1
     res = o.query.filter(o.attribute2.in_([1, 2, 3])).all()
     assert len(res) == 3
     assert sorted([ob.id for ob in res]) == [1, 2, 3]
     assert sorted([ob.attribute2 for ob in res]) == [1, 2, 3]
 
 
-def test_mix_of_things(cl):
-    o = cl.Object1
+def test_mix_of_things(fcl):
+    o = fcl.Object1
     res = o.query.filter(o.attribute2.in_([2, 3, 4, 5]), o.id > 2, o.id < 5).all()
     assert len(res) == 2
     assert sorted([ob.id for ob in res]) == [3, 4]
     assert sorted([ob.attribute2 for ob in res]) == [3, 4]
 
 
-def test_single_fails_on_multi_result(cl):
-    o = cl.Object1
-    with pytest.raises(HTTPError):
+def test_single_fails_on_multi_result(fcl):
+    o = fcl.Object1
+    with pytest.raises(Exception):
         o.query.filter(o.attribute2.in_([1, 2, 3])).one()
 
 
-def test_single(cl):
-    o = cl.Object1
+def test_single(fcl):
+    o = fcl.Object1
     res = o.query.filter(o.attribute2 == 4).one()
     assert res.id == 4 and res.attribute2 == 4
 
 
-def test_filter_by(cl):
-    o = cl.Object1
+def test_one_or_none(fcl):
+    o = fcl.Object1
+    res = o.query.filter(o.attribute2 == 99).one_or_none()
+    assert res == None
+
+
+def test_one_or_none_fails_on_multiple(fcl):
+    o = fcl.Object1
+    with pytest.raises(Exception):
+        o.query.filter(o.attribute2.in_([1, 2, 3])).one_or_none()
+
+
+def test_filter_by(fcl):
+    o = fcl.Object1
     res = o.query.filter_by(attribute2=4).all()
     assert len(res) == 1
     assert res[0].id == 4 and res[0].attribute2 == 4
@@ -124,8 +136,8 @@ def test_complex_filter():
     assert res == expected
 
 
-def test_o2m_relation_filter(cl):
-    o = cl.Object2
+def test_o2m_relation_filter(fcl):
+    o = fcl.Object2
     f = o.relation1.relation2.attribute1 == "o3a11"
     expected = {'name': 'relation1',
                 'op': 'has',
@@ -137,8 +149,8 @@ def test_o2m_relation_filter(cl):
     assert f.to_raw_filter() == expected
 
 
-def test_m2o_relation_filter(cl):
-    o = cl.Object3
+def test_m2o_relation_filter(fcl):
+    o = fcl.Object3
     f = o.relation2.relation1.attribute1 == "o2a13"
     expected = {'name': 'relation2',
                 'op': 'any',
@@ -150,8 +162,8 @@ def test_m2o_relation_filter(cl):
     assert f.to_raw_filter() == expected
 
 
-def test_mix_relation_filter(cl):
-    o = cl.Object1
+def test_mix_relation_filter(fcl):
+    o = fcl.Object1
     f = o.relation1.relation1.attribute1 == "o1a11"
     expected = {'name': 'relation1',
                 'op': 'any',

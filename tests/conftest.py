@@ -1,5 +1,6 @@
 import flask
 import pytest
+from requests_flask_adapter import Session
 
 
 @pytest.fixture
@@ -12,7 +13,9 @@ def app():
 
 
 @pytest.fixture
-def client(app):
-    with app.app_context():
-        return app.test_client
+def client_maker():
+    def client(app):
+        Session.register('http://app', app)
+        return Session()
+    return client
 

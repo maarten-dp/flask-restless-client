@@ -1,86 +1,130 @@
-from bluesnake_client.filter import Query
-from bluesnake_client.connection import LoadableProperty
-from bluesnake_client.utils import (urljoin, generate_id, classproperty, State,
-    pretty_logger)
+from restless_client.filter import Query
+from restless_client.property import LoadableProperty
+from restless_client.utils import (urljoin, generate_id, classproperty, State,
+    pretty_logger, TypedList, rel_info)
 import logging
+import crayons
+from itertools import chain
 
-logger = logging.getLogger('bluesnake-client')
+logger = logging.getLogger('restless-client')
+LOAD_MSG = 'loading {}.{} with value {}'
 
 
-def create_method_function(client, name, details):
-    method_url = details['url']
+def log(o, a, v, attr_color='red'):
+    logger.info(LOAD_MSG.format(
+        crayons.yellow(o.__class__.__name__, always=True, bold=True),
+        getattr(crayons, attr_color)(a, always=True, bold=True),
+        crayons.green(str(v)[:150], always=True, bold=True)))
 
-    def fn(self, **kwargs):
-        additional = ""
-        for arg in details['args']:
-            additional += "/%s" % kwargs[arg]
-        if isinstance(self.id, str) and self.id.startswith('C'):
-            raise Exception('Cannot use methods on newly created objects')
-        url_params = {
-            'target': self.__class__.__name__.lower(),
-            'oid': self.id,
-            'method': name,
-            'additional': additional
+
+def log_loading(color):
+    def decorator(fn):
+        def execute(self, obj, field, val, *args, **kwargs):
+            log(obj, field, val, color)
+            return fn(self, obj, field, val, *args, **kwargs)
+
+        return execute
+    return decorator
+
+
+class Populator:
+    def __init__(self, client, opts):
+        self.client = client
+        self.opts = opts
+
+    def load(self, obj, attributes_dict):
+        with pretty_logger():
+            self.handle_attributes(obj, attributes_dict)
+            self.handle_relations(obj, attributes_dict)
+
+    def handle_attributes(self, obj, raw):
+        for field, field_type in obj._attrs.items():
+            if field in raw:
+                log(obj, field, raw[field])
+                setattr(obj, field, raw[field])
+
+    def handle_relations(self, obj, raw):
+        relation_type_handlers = {
+            'ONETOMANY': self.handle_o2m,
+            'MANYTOONE': self.handle_m2o,
+            'ONETOONE': self.handle_o2o,
         }
-        suffix = method_url.format(**url_params)
-        if suffix.startswith("/"):
-            suffix = suffix[1:]
-        url = urljoin(client.model_url, suffix)
-        return client.object_loader.load_raw(
-            url, as_timezone=client._timezone, **kwargs)
+        for field in obj._relations.keys():
+            val = raw.get(field, State.VOID)
+            rel = rel_info(self.client, obj._relations, field)
+            relation_type_handlers[rel.type](obj, field, val, rel.model)
 
-    return fn
+    @log_loading('blue')
+    def handle_o2m(self, obj, field, val, rel_model):
+        typed_list = self.opts.TypedListClass(rel_model, obj, field)
+        if val is not State.VOID:
+            for rel_obj in val:
+                if isinstance(rel_obj, dict):
+                    rel_obj = rel_model(**rel_obj)
+                with pretty_logger():
+                    typed_list.append(rel_obj)
+            setattr(obj, field, typed_list)
+
+    @log_loading('cyan')
+    def handle_m2o(self, obj, field, val, rel_model, color='cyan'):
+        if isinstance(val, dict):
+            val = rel_model(**val)
+        if hasattr(val.__class__, '__bases__'):
+            if 'BaseObject' in [k.__name__ for k in val.__class__.__bases__]:
+                setattr(obj, field, val)
+
+    @log_loading('magenta')
+    def handle_o2o(self, obj, field, val, rel_model):
+        self.handle_m2o(obj, field, val, rel_model, color='magenta')
 
 
 class BaseObject:
     def __init__(self, **kwargs):
         super().__setattr__('id', kwargs.pop('id', generate_id()))
-        with pretty_logger():
-            self._parent.object_loader.load_obj_from_dict(self, kwargs)
-        self._parent._register(self)
+        self._populator.load(self, kwargs)
+        self._client._register(self)
 
     def __new__(cls, **kwargs):
         key = None
         if kwargs.get('id'):
             key = '%s%s' % (cls.__name__, kwargs['id'])
-        if key in cls._parent.registry:
-            obj = cls._parent.registry[key]
-            logger.debug('Using existing {}'.format(key))
+        if key in cls._client.registry:
+            obj = cls._client.registry[key]
+            logger.debug(crayons.yellow('Using existing {}'.format(key)))
         else:
             obj = object.__new__(cls)
-            obj._dirty = []
+            obj._dirty = set()
             obj._values = {}
-            logger.debug('initialising {}'.format(key))
+            logger.debug(crayons.yellow('initialising {}'.format(key)))
         return obj
 
     def __setattr__(self, name, value):
+        if not name.startswith('_'):
+            if name not in chain(self._relations, self._attrs):
+                raise AttributeError('{} has no attribute named {}'.format(
+                    self._class_name, name))
         if name in self._relations.keys():
-            rel_type = self._relations[name]['relation_type']
-            rel_model = self._relations[name]['foreign_model']
-            if value and rel_type == 'o2m':
-                allowed = (self._parent._classes[rel_model], LoadableProperty)
+            rel = rel_info(self._client, self._relations, name)
+            if value and rel.type in ('MANYTOONE', 'ONETOONE'):
+                allowed = (rel.model, LoadableProperty)
                 if value.__class__ not in allowed:
                     msg = '%s must be an instance of %s, not %s'
-                    raise Exception(msg % (name, rel_model,
+                    raise Exception(msg % (name, rel.model_name,
                                            value.__class__.__name__))
         object.__setattr__(self, name, value)
-
-    @classproperty
-    def query(cls):
-        return Query(cls._parent, cls)
 
     @classmethod
     def all(cls):
         # shorthand for Class.query.all()
-        return Query(cls._parent, cls).all()
+        return cls.query.all()
 
     @classmethod
     def get(cls, oid):
         # shorthand for Class.query.get()
         registry_id = '{}{}'.format(cls.__name__, oid)
-        if registry_id in cls._parent.registry:
-            return cls._parent.registry[registry_id]
-        return Query(cls._parent, cls).get(oid)
+        if registry_id in cls._client.registry:
+            return cls._client.registry[registry_id]
+        return cls.query.get(oid)
 
     @classmethod
     def attributes(cls):
@@ -96,7 +140,11 @@ class BaseObject:
 
     @property
     def is_new(self):
-        return str(self.id).startswith('C')
+        return str(self._pkval).startswith('C')
+
+    @property
+    def _pkval(self):
+        return getattr(self, self._pk_name)
 
     def _flat_dict(self):
         # create attribute dict
@@ -106,8 +154,8 @@ class BaseObject:
             if isinstance(value, BaseObject):
                 if value.is_new:
                     value.save()
-                return {'id': value.id}
-            return {'value': value}
+                return {'id': value._pkval}
+            return value
 
         for attr in self._dirty:
             value = getattr(self, attr)
@@ -123,8 +171,8 @@ class BaseObject:
 
     def delete(self):
         if not self.is_new:
-            url = '%s/%s' % (self._base_url, self.id)
-            r = self._parent.session.delete(url)
+            url = '%s/%s' % (self._base_url, self._pkval)
+            r = self._client.session.delete(url)
             if not r.status_code == 204:
                 msg = "Unable to delete object %s, recieved status code %s: %s"
                 raise Exception(msg % (self.__class__.__name__, r.status_code,
@@ -133,42 +181,19 @@ class BaseObject:
 
     def save(self):
         if self.is_new_object():
-            self._create()
+            self._connection.create(self)
         elif self._dirty:
-            self._update()
+            self._connection.update(self)
         else:
             logger.debug("No action needed")
         self._state = State.LOADABLE
-        self._dirty = []
-
-    def _create(self):
-        object_dict = self._flat_dict()
-        logger.debug("Creating: %s" % self._base_url)
-        logger.debug("Body: %s" % object_dict)
-        r = self._parent.session.post(self._base_url, json=object_dict)
-        if r.ok:
-            self.id = r.json()['id']
-        else:
-            msg = "Unable to create object %s, recieved status code %s: %s"
-            raise Exception(msg % (self.__class__.__name__, r.status_code,
-                                   r.content))
-
-    def _update(self):
-        object_dict = self._flat_dict()
-        url = urljoin(self._base_url, str(self.id))
-        logger.debug("Updating: %s" % url)
-        logger.debug("Body: %s" % object_dict)
-        r = self._parent.session.put(url, json=object_dict)
-        if not r.ok:
-            msg = "Unable to update object %s, recieved status code %s: %s"
-            raise Exception(msg % (self.__class__.__name__, r.status_code,
-                                   r.content))
+        self._dirty = set()
 
     def __repr__(self):
         return str(self)
 
     def __str__(self):
-        attributes = ["id: %s" % self.id]
+        attributes = ["%s: %s".format(self._pk_name, self._pkval)]
         if hasattr(self, 'name'):
             attributes.append("name: %s" % self.name)
         return "<%s [%s]>" % (self.__class__.__name__, " | ".join(attributes))

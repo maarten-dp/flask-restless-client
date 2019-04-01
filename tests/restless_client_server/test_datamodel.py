@@ -5,6 +5,7 @@ import pytest
 import flask_restless
 import cereal_lazer as sr
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.ext.associationproxy import association_proxy
 
 from restless_client_server import DataModel
 
@@ -26,6 +27,8 @@ def test_datamodel(app, client_maker):
         owner_id = db.Column(db.Integer, db.ForeignKey('person.id'))
         owner = db.relationship('Person', backref=db.backref('computers',
                                                              lazy='dynamic'))
+        owner_name = association_proxy('owner', 'name')
+        peers = association_proxy('owner', 'computers')
 
     db.create_all()
 
@@ -37,19 +40,26 @@ def test_datamodel(app, client_maker):
 
     expected = {
         'Computer': {
+            'pk_name': 'id',
             'collection_name': 'compjutahs',
             'attributes': {
                 'id': 'integer',
                 'owner_id': 'integer',
+                'owner_name': 'unicode',
                 'purchase_time': 'datetime',
                 'vendor': 'unicode'},
             'relations': {
                 'owner': {
                     'backref': 'computers',
                     'foreign_model': 'Person',
-                    'relation_type': 'MANYTOONE'}},
+                    'local_column': 'owner_id',
+                    'relation_type': 'MANYTOONE'},
+                'peers': {'foreign_model': 'Computer',
+                          'is_proxy': True,
+                          'relation_type': 'MANYTOONE'}},
             'methods': {}},
          'Person': {
+            'pk_name': 'id',
             'collection_name': 'person',
             'attributes': {
                 'name': 'unicode'},
@@ -84,6 +94,7 @@ def test_inheritance(app, client_maker):
 
     expected = {
         'Engineer': {
+            'pk_name': 'id',
             'collection_name': 'engineer',
             'attributes': {
                 'id': 'integer',
@@ -92,6 +103,7 @@ def test_inheritance(app, client_maker):
             'relations': {},
             'methods': {}},
          'Person': {
+            'pk_name': 'id',
             'collection_name': 'person',
             'attributes': {
                 'id': 'integer',
@@ -154,6 +166,7 @@ def test_exposed_methods(exposed_method_model_app, client_maker):
 
     expected = {
         'Person': {
+            'pk_name': 'id',
             'collection_name': 'person',
             'attributes': {
                 'id': 'integer',
