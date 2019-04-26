@@ -1,15 +1,16 @@
 import requests
 import pprint
 import logging
-from restless_client.utils import (parse_custom_types, urljoin, ObjectCollection)
+from .utils import parse_custom_types, urljoin
+from .collections import ObjectCollection
 import crayons
 from functools import partial
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 import json
 from collections import OrderedDict
 from ordered_set import OrderedSet
 
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 logger = logging.getLogger('restless-client')
 
 
@@ -29,18 +30,33 @@ def lock_loading(fn):
     return decorator
 
 
+def raise_on_locked(fn):
+    def decorator(self, obj, *args, **kwargs):
+        """
+        mostly a utility and debugging measure. We'd like to prevent a load from
+        being triggered when another load is in progress. Throwing a hard
+        exception will give us a handle on the problem much faster.
+        """
+        if obj._client.is_loading and obj._client.opts.debug:
+            raise Exception('Loading is locked')
+        return fn(self, obj, *args, **kwargs)
+    return decorator
+
+
 class RestlessError(Exception):
     pass
 
 
 class Connection:
-    def __init__(self, session, opts):
-        self.session = session
+    def __init__(self, client, opts):
+        self.client = client
+        self.session = opts.session
         self.opts = opts
 
+    @raise_on_locked
     @lock_loading
     def load_query(self, obj_class, single=False, **kwargs):
-        raw = self.request(obj_class._base_url, **kwargs)
+        raw = self.request(obj_class._base_url, params=kwargs)
 
         if single:
             return obj_class(**raw)
@@ -54,6 +70,7 @@ class Connection:
         return self.opts.CollectionClass(
             obj_class, OrderedSet([obj_class(**obj) for obj in objects]))
 
+    @raise_on_locked
     @lock_loading
     def load(self, obj_class, obj_id):
         raw = self.request(urljoin(obj_class._base_url, str(obj_id)))
@@ -61,25 +78,29 @@ class Connection:
 
     @lock_loading
     def create(self, obj, object_dict=None):
-        object_dict = object_dict or obj._flat_dict()
+        object_dict = object_dict or self.client.serializer.serialize_dirty(obj)
         r = self.request(obj._base_url, http_method='post', json=object_dict)
-        obj._pkval = r.json()[obj._pk_name]
+        setattr(obj, obj._pk_name, r[obj._pk_name])
 
     @lock_loading
     def update(self, obj, object_dict=None):
-        object_dict = object_dict or obj._flat_dict()
+        object_dict = object_dict or self.client.serializer.serialize_dirty(obj)
         url = urljoin(obj._base_url, str(obj._pkval))
         self.request(url, http_method='put', json=object_dict)
+
+    def delete(self, obj):
+        if not obj.is_new:
+            url = urljoin(obj._base_url, str(obj._pkval))
+            self.request(url, http_method='delete')
 
     @log
     def request(self, url, **kwargs):
         fn = getattr(self.session, kwargs.pop('http_method', 'get'))
-        r = fn(url, params=kwargs)
+        r = fn(url, **kwargs)
         result = r.json(
             object_hook=partial(parse_custom_types, **kwargs),
-            # object_pairs_hook=OrderedDict
         )
 
-        if 'message' in result:
-            raise RestlessError(result['message'])
+        # if 'message' in result:
+        #     raise RestlessError(result['message'])
         return result

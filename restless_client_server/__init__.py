@@ -170,11 +170,14 @@ class DataModel(object):
         abort(Response(json.dumps(self.data_model)))
 
     def resolve_inheritance(self, model, inheriting_from):
-        for imodel in inheriting_from:
-            iattrs = self.data_model[imodel]['attributes']
-            irels = self.data_model[imodel]['relations']
-            self.data_model[model]['attributes'].update(iattrs)
-            self.data_model[model]['relations'].update(irels)
+        idef = self.data_model[inheriting_from['parent']]
+        odef = self.data_model[model]
+        odef['attributes'].update(idef['attributes'])
+        odef['relations'].update(idef['relations'])
+        odef['polymorphic'] = {'parent': inheriting_from['parent']}
+        idef.setdefault('polymorphic', {})['on'] = inheriting_from['on']
+        idef['polymorphic'].setdefault(
+            'identities', {})[inheriting_from['identity']] = model
 
     def get_restless_model_conf(self, model, api_info):
         """
@@ -253,12 +256,19 @@ class DataModel(object):
         # inheritance
         if hasattr(model, '__mapper_args__') and 'polymorphic_identity' in model.__mapper_args__:
             db = self.api_manager.flask_sqlalchemy_db
-            inheriting_from = []
+            parent = None
             for kls in model.__bases__:
                 if issubclass(kls, db.Model) and kls is not db.Model:
-                    inheriting_from.append(kls.__name__)
-            if inheriting_from:
-                self.flag_for_inheritance[model.__name__] = inheriting_from
+                    parent = kls
+            if parent:
+                on = parent.__mapper_args__['polymorphic_on']
+                if not isinstance(on, str):
+                    on = on.key
+                self.flag_for_inheritance[model.__name__] = {
+                    'parent': parent.__name__,
+                    'on': on,
+                    'identity': model.__mapper_args__['polymorphic_identity'],
+                }
 
         # association proxies
         proxies = [

@@ -1,10 +1,11 @@
-from restless_client.connection import Connection
-from restless_client.property import LoadableProperty
-from restless_client.filter import Query
-from restless_client.utils import (urljoin, State, get_depth, ObjectCollection,
-    TypedList)
-from restless_client.models import BaseObject, Populator
-from restless_client.ext.auth import BaseSession, Session
+from .connection import Connection
+from .property import LoadableProperty
+from .filter import Query
+from .utils import urljoin, State, get_depth, RelationHelper
+from .collections import ObjectCollection, TypedList
+from .marshal import ObjectDeserializer, ObjectSerializer
+from .models import BaseObject
+from .ext.auth import BaseSession, Session
 from contextlib import contextmanager
 import crayons
 import logging
@@ -34,7 +35,9 @@ class Options:
         # the only entrypoint to load/save/update objects
         self.ConnectionClass = opts.pop('connection', Connection)
         # takes care of populating instances based on the given kwargs
-        self.PopulatorClass = opts.pop('populator', Populator)
+        self.DeserializeClass = opts.pop('deserializer', ObjectDeserializer)
+        self.SerializeClass = opts.pop('deserializer', ObjectSerializer)
+        self.RelationHelper = opts.pop('relhelper', RelationHelper)
         # takes care of building the classes
         self.ConstructorClass = opts.pop('constructor', ClassConstructor)
         # base object every constructed class will inherit from
@@ -70,7 +73,10 @@ class ClassConstructor:
             '_methods': details['methods'].keys(),
             '_base_url': urljoin(self.client.model_url, name.lower()),
             '_connection': self.client.connection,
-            '_populator': self.client.populator,
+            '_deserializer': self.client.deserializer,
+            '_polymorphic': details.get('polymorphic', {}),
+            '_relhelper': self.opts.RelationHelper(
+                self.client, self.opts, details['relations'])
         }
         slots = []
         for field in chain(details['attributes'], details['relations']):
@@ -80,11 +86,15 @@ class ClassConstructor:
         #     attributes[method] = create_method_function(
         #         self, method, method_details)
 
-        klass = type(str(name), (self.opts.BaseObject, ), attributes)
+        inherits = [self.opts.BaseObject]
+        if details.get('polymorphic', {}).get('parent'):
+            parent = self.client._classes[details['polymorphic']['parent']]
+            inherits.insert(0, parent)
+        klass = type(str(name), tuple(inherits), attributes)
         klass.query = Query(self.client.connection, klass)
         self.client._classes[name] = klass
         setattr(self.client, name, klass)
-    
+
 
 class Client:
     def __init__(self, url, username=None, password=None, token=None, **kwargs):
@@ -99,8 +109,9 @@ class Client:
 
         self.opts = Options(kwargs)
 
-        self.connection = self.opts.ConnectionClass(self.opts.session, self.opts)
-        self.populator = self.opts.PopulatorClass(self, self.opts)
+        self.connection = self.opts.ConnectionClass(self, self.opts)
+        self.serializer = self.opts.SerializeClass(self, self.opts)
+        self.deserializer = self.opts.DeserializeClass(self, self.opts)
         self.constructor = self.opts.ConstructorClass(self, self.opts)
 
         self.initialize()
@@ -108,19 +119,18 @@ class Client:
     def initialize(self):
         url = urljoin(self.base_url, 'restless-client-datamodel')
         res = self.connection.request(url)
+        delayed = {}
         for name, details in res.items():
+            if details.get('polymorphic', {}).get('parent'):
+                delayed[name] = details
+                continue
+            self.constructor.construct_class(name, details)
+        for name, details in delayed.items():
             self.constructor.construct_class(name, details)
 
     @property
     @contextmanager
     def loading(self):
-        """
-        mostly a utility and debugging measure. We'd like to prevent a load from
-        being triggered when another load is in progress. Throwing a hard
-        exception will give us a handle on the problem much faster.
-        """
-        if self.state == State.LOADING and self.opts.debug:
-            raise Exception('Already in load state')
         self.state = State.LOADING
         yield
         self.state = State.LOADABLE

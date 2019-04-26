@@ -96,6 +96,9 @@ def test_inheritance(app, client_maker):
         'Engineer': {
             'pk_name': 'id',
             'collection_name': 'engineer',
+            'polymorphic': {
+                'parent': 'Person',
+            },
             'attributes': {
                 'id': 'integer',
                 'primary_language': 'unicode',
@@ -105,6 +108,10 @@ def test_inheritance(app, client_maker):
          'Person': {
             'pk_name': 'id',
             'collection_name': 'person',
+            'polymorphic': {
+                'on': 'discriminator',
+                'identities': {'engineer': 'Engineer'}
+            },
             'attributes': {
                 'id': 'integer',
                 'discriminator': 'unicode'},

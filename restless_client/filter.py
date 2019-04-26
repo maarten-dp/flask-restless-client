@@ -140,8 +140,7 @@ class Query:
     def filter_by(self, **kwargs):
         filters = []
         for attr, value in kwargs.items():
-            filters.append((getattr(self.cls, attr) == value).to_raw_filter())
-        self._query['filters'] = filters
+            self.filter(getattr(self.cls, attr) == value)
         return self
 
     def limit(self, limit):
