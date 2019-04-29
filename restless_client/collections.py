@@ -1,4 +1,5 @@
 import logging
+from prettytable import PrettyTable
 
 logger = logging.getLogger('restless-client')
 

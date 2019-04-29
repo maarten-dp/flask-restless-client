@@ -95,12 +95,13 @@ class Connection:
 
     @log
     def request(self, url, **kwargs):
-        fn = getattr(self.session, kwargs.pop('http_method', 'get'))
+        method = kwargs.pop('http_method', 'get')
+        fn = getattr(self.session, method)
         r = fn(url, **kwargs)
+        if method == 'delete':
+            return
+
         result = r.json(
             object_hook=partial(parse_custom_types, **kwargs),
         )
-
-        # if 'message' in result:
-        #     raise RestlessError(result['message'])
         return result

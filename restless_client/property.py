@@ -28,7 +28,7 @@ class LoadableProperty:
         if self.getval(obj) is State.VOID and not obj.is_new:
             args = (obj.__class__, obj._pkval)
             logger.debug('Loading {} with id {} remotely'.format(*args))
-            obj._client.object_loader.load_obj(*args)
+            obj._connection.load(*args)
         if self.getval(obj) is State.VOID:
             return None
         return self.getval(obj)
