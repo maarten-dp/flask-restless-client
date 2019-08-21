@@ -1,4 +1,4 @@
-import requests
+import pytest
 
 
 def test_it_can_load_an_object(cl):
@@ -9,6 +9,12 @@ def test_it_can_load_an_object(cl):
 def test_it_can_load_a_simple_filter(cl):
     colony = cl.AntColony.query.filter_by(name='Argentine Ant').one()
     assert colony.name == 'Argentine Ant'
+
+
+def test_it_cant_set_an_unexisting_attribute(cl):
+    colony = cl.AntColony.get(1)
+    with pytest.raises(AttributeError):
+        colony.unknown = 'Argentine Ant'
 
 
 def test_it_can_load_a_simple_relation_filter(cl):
@@ -22,6 +28,15 @@ def test_it_can_load_based_on_an_object_filter(cl):
     colony = cl.AntColony.query.filter_by(formicarium=formicarium).one()
     assert colony.name == 'Argentine Ant'
 
+
+def test_it_can_init_a_polymorphed_class_correcly(cl):
+    formicarium = cl.Formicarium.query.filter_by(name='Specimen-1').one()
+    assert isinstance(formicarium, cl.SandwichFormicarium)
+    expected = ['id', 'name', 'formicarium_type', 'width', 'collection_id', 'height']
+    assert formicarium.attributes() == expected
+    expected = ['collection', 'colonies']
+    assert formicarium.relations() == expected
+    assert formicarium.height == 10
 
 def test_it_can_load_an_inherited_object(cl):
     formicarium = cl.SandwichFormicarium.query.filter_by(name='Specimen-1').one()
@@ -151,3 +166,6 @@ def test_it_can_filter_boolean_expressions(cl):
     ).all()
     expected = ['Fire Ant', 'Argentine Ant', 'Bulldog Ant']
     assert sorted([r.name for r in result]) == sorted(expected)
+
+
+# tests not suited for this module, need to be moved

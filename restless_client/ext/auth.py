@@ -14,6 +14,8 @@ class BaseSession(requests.Session):
         super().__init__(**kwargs)
         self.verify = verify
         self.trust_env = trust_env
+        self.kwargs = kwargs
+
         if url and username:
             self.authenticate(url, username, password)
         elif url and token:
@@ -50,8 +52,8 @@ class BearerSession(BaseSession):
 
     def authenticate(self, url, username, password=None):
         payload = {
-            'email': username,
-            'password': password
+            self.kwargs.get('user_field', 'username'): username,
+            self.kwargs.get('password_field', 'password'): password
         }
         r = self.post(url, data=payload)
         if not r.ok:

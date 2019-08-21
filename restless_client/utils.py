@@ -15,13 +15,8 @@ DEPTH = 0
 
 class State(Enum):
     VOID = 1
-    UNLOADED = 2
-    LOADED = 3
-    LOADING = 4
-    LOADABLE = 5
-    NOT_LOADABLE = 6
-    DIRTY = 7
-    NEW = 8
+    LOADING = 2
+    LOADABLE = 3
 
 
 def generate_id():
@@ -58,14 +53,6 @@ def parse_custom_types(dct, as_timezone=UTC, **kwargs):
             pass
 
     return dct
-
-
-class classproperty(object):
-    def __init__(self, fget):
-        self.fget = fget
-
-    def __get__(self, owner_self, owner_cls):
-        return self.fget(owner_cls)
 
 
 class UserException(Exception):

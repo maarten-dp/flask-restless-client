@@ -173,3 +173,8 @@ def test_mix_relation_filter(fcl):
                                 'op': '==',
                                 'val': 'o1a11'}}}
     assert f.to_raw_filter() == expected
+
+
+def test_it_raises_an_error_on_unknown_attribute(fcl):
+    with pytest.raises(AttributeError) as exc:
+        assert fcl.Object1.relation1.Unknown == None

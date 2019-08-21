@@ -74,14 +74,15 @@ def setup_obj():
     relhelper = Mock()
     relhelper.column_name.side_effect = lambda x: x
     obj = Mock(
+        _pk_name='id',
         _relhelper=relhelper,
         _values={
             'id': 1,
             'attr1': 'someattr',
             'somedate': datetime(2018, 1, 1),
             'somelist': [1, 2, 3],
-            'rel1': Mock(_pkval=2),
-            'rel2': [Mock(_pkval=3)],
+            'rel1': Mock(_pkval=2, _pk_name='id'),
+            'rel2': [Mock(_pkval=3, _pk_name='id')],
         }
     )
     obj.attributes.return_value = ['id', 'attr1', 'somedate', 'somelist']

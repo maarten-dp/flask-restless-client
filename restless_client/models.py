@@ -1,5 +1,5 @@
 from .filter import Query
-from .utils import urljoin, generate_id, classproperty, State
+from .utils import urljoin, generate_id, State
 from .collections import TypedList
 import logging
 import crayons
@@ -18,15 +18,16 @@ def get_class(cls, kwargs):
 
 class BaseObject:
     def __init__(self, **kwargs):
+        oid = self._pk_name
         super().__setattr__(
-            'id', kwargs['id'] if 'id' in kwargs else generate_id())
+            oid, kwargs[oid] if oid in kwargs else generate_id())
         self._deserializer.load(self, kwargs)
         self._client._register(self)
 
     def __new__(cls, **kwargs):
         key = None
-        if kwargs.get('id'):
-            key = '%s%s' % (cls.__name__, kwargs['id'])
+        if kwargs.get(cls._pk_name):
+            key = '%s%s' % (cls.__name__, kwargs[cls._pk_name])
         if key in cls._client.registry:
             obj = cls._client.registry[key]
             logger.debug(crayons.yellow('Using existing {}'.format(key)))
@@ -61,15 +62,15 @@ class BaseObject:
 
     @classmethod
     def attributes(cls):
-        return cls._attrs.keys()
+        return list(cls._attrs.keys())
 
     @classmethod
     def relations(cls):
-        return cls._relations.keys()
+        return list(cls._relations.keys())
 
     @classmethod
     def methods(cls):
-        return cls._methods
+        return list(cls._methods)
 
     @property
     def is_new(self):

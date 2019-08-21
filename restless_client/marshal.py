@@ -41,8 +41,8 @@ class ObjectSerializer:
 
     def _serialize(self, obj, to_serialize, autosave=False):
         # create attribute dict
-        if 'id' in to_serialize:
-            to_serialize.remove('id')
+        if obj._pk_name in to_serialize:
+            to_serialize.remove(obj._pk_name)
         object_dict = {}
         for attr in to_serialize:
             value = obj._values[attr]
@@ -53,7 +53,7 @@ class ObjectSerializer:
         if isinstance(value, self.opts.BaseObject):
             if value.is_new and autosave:
                 value.save()
-            value = {'id': value._pkval}
+            value = {value._pk_name: value._pkval}
         if isinstance(value, (date, datetime)):
             value =  value.isoformat()
         if isinstance(value, (list, set, tuple)):
@@ -97,7 +97,9 @@ class ObjectDeserializer:
                     rel_obj = rel_model(**rel_obj)
                 with pretty_logger():
                     typed_list.append(rel_obj)
-        setattr(obj, field, typed_list)
+            setattr(obj, field, typed_list)
+        elif obj.is_new:
+            setattr(obj, field, typed_list)
 
     @log_loading('cyan')
     def handle_m2o(self, obj, field, val, rel_model):

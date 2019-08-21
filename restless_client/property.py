@@ -53,7 +53,7 @@ class FilterNode(FilterMixIn):
     def __getattr__(self, attr):
         if attr not in self.klass.attributes() and attr not in self.klass.relations():
             msg = '{} has no attribute named {}'
-            raise Exception(msg.format(self.klass._class_name, attr))
+            raise AttributeError(msg.format(self.klass._class_name, attr))
         return FilterNode(self.klass, attr, parent_node=self)
 
     def _assemble_filter(self, op, val):

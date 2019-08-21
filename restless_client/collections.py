@@ -110,7 +110,8 @@ class ObjectCollection(list):
             return val
 
         for obj in self:
-            pt.add_row([truncate(str(getattr(obj, header))) for header in headers])
+            values = obj._values
+            pt.add_row([truncate(str(values.get(header))) for header in headers])
         res = pt.get_string(border=False, sortby="id")
         if not res:
             pt.add_row(['' for header in headers])
