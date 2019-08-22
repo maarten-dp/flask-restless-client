@@ -1,1 +1,8 @@
+cereal-lazer
+crayons
 fast-alchemy
+prettytable
+requests-flask-adapter
+requests
+Serialize
+

@@ -69,8 +69,10 @@ class Options:
         if 'session' in opts:
             self.session = opts.pop('session')
         else:
-            auth_url = opts.pop('auth_url', urljoin(self.base_url, 'auth'))
-            self.session = Session(auth_url, username, password, token, **opts)
+            auth_url = opts.pop('auth_url', urljoin(opts['base_url'], 'auth'))
+            self.session = Session(
+                auth_url, **opts
+            )
 
 
 class Method:
@@ -153,7 +155,7 @@ class ClassConstructor:
 
 
 class Client:
-    def __init__(self, url, username=None, password=None, token=None, **kwargs):
+    def __init__(self, url, **kwargs):
         self.base_url = url
         self.state = State.LOADABLE
         self.model_url = kwargs.pop('model_root', url)
@@ -163,6 +165,7 @@ class Client:
         self.registry = {}
         self._classes = {}
 
+        kwargs['base_url'] = url
         self.opts = Options(kwargs)
 
         self.connection = self.opts.ConnectionClass(self, self.opts)

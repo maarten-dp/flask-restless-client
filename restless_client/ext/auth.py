@@ -11,7 +11,7 @@ class AuthenticationError(Exception):
 class BaseSession(requests.Session):
     def __init__(self, url=None, username=None, password=None, token=None,
                  verify=True, trust_env=True, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__()
         self.verify = verify
         self.trust_env = trust_env
         self.kwargs = kwargs
@@ -49,6 +49,7 @@ class BearerSession(BaseSession):
     def __init__(self, *args, **kwargs):
         self.bearer_header = kwargs.pop('bearer_header', 'Authorization')
         self.bearer_prefix = kwargs.pop('bearer_prefix', 'Bearer')
+        super().__init__(*args, **kwargs)
 
     def authenticate(self, url, username, password=None):
         payload = {
