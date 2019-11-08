@@ -12,3 +12,6 @@ pytest-xdist
 yapf
 
 Flask-Restless==0.17.0
+flask-restless-datamodel
+requests-flask-adapter
+fast-alchemy

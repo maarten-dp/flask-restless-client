@@ -1,7 +1,5 @@
 cereal-lazer
 crayons
-fast-alchemy
 prettytable
 requests
-requests-flask-adapter
 Serialize
