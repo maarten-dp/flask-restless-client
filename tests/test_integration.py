@@ -32,14 +32,18 @@ def test_it_can_load_based_on_an_object_filter(cl):
 def test_it_can_init_a_polymorphed_class_correcly(cl):
     formicarium = cl.Formicarium.query.filter_by(name='Specimen-1').one()
     assert isinstance(formicarium, cl.SandwichFormicarium)
-    expected = ['id', 'name', 'formicarium_type', 'width', 'collection_id', 'height']
+    expected = [
+        'id', 'name', 'formicarium_type', 'width', 'collection_id', 'height'
+    ]
     assert formicarium.attributes() == expected
     expected = ['collection', 'colonies']
     assert formicarium.relations() == expected
     assert formicarium.height == 10
 
+
 def test_it_can_load_an_inherited_object(cl):
-    formicarium = cl.SandwichFormicarium.query.filter_by(name='Specimen-1').one()
+    formicarium = cl.SandwichFormicarium.query.filter_by(
+        name='Specimen-1').one()
     assert formicarium.height == 10
 
 
@@ -50,10 +54,7 @@ def test_it_correctly_loads_inherited_objects(cl):
 
 
 def test_it_can_save_an_object(cl):
-    collection = cl.AntCollection(
-        name="Antiquities",
-        location="The Past"
-    )
+    collection = cl.AntCollection(name="Antiquities", location="The Past")
     collection.save()
     assert collection.id == 4
 
@@ -70,10 +71,7 @@ def test_it_can_save_an_inherited_object(cl):
 
 
 def test_it_can_save_an_object_with_an_unsaved_object_as_relation(cl):
-    collection = cl.AntCollection(
-        name="Antiquities",
-        location="The Past"
-    )
+    collection = cl.AntCollection(name="Antiquities", location="The Past")
     formicarium = cl.SandwichFormicarium(
         name="PlAnts",
         height=10,
@@ -91,11 +89,9 @@ def test_it_can_save_an_object_with_unsaved_objects_as_relation(cl):
         height=10,
         width=10,
     )
-    collection = cl.AntCollection(
-        name="Antiquities",
-        location="The Past",
-        formicaria=[formicarium]
-    )
+    collection = cl.AntCollection(name="Antiquities",
+                                  location="The Past",
+                                  formicaria=[formicarium])
     collection.save()
     assert collection.id == 4
     assert formicarium.id == 6
@@ -125,7 +121,8 @@ def test_it_can_update_an_object(cl, app):
     assert app.AntCollection.query.get(1).name == new_name
 
 
-def test_it_can_update_an_object_when_removing_and_object_from_relations(cl, app):
+def test_it_can_update_an_object_when_removing_and_object_from_relations(
+        cl, app):
     formicarium = cl.Formicarium.get(1)
     formicarium.colonies.remove(formicarium.colonies[0])
     formicarium.save()
@@ -145,25 +142,22 @@ def test_it_can_access_a_level_two_relation(cl):
 
 def test_it_can_filter_a_level_two_relation_up(cl):
     result = cl.AntColony.query.filter(
-        cl.AntColony.formicarium.collection.name == 'Antics'
-    ).all()
+        cl.AntColony.formicarium.collection.name == 'Antics').all()
     expected = ['Fire Ant', 'Garden Ant', 'Bulldog Ant']
     assert sorted([r.name for r in result]) == sorted(expected)
 
 
 def test_it_can_filter_a_level_two_relation_down(cl):
     result = cl.AntCollection.query.filter(
-        cl.AntCollection.formicaria.colonies.name == 'Argentine Ant'
-    ).all()
+        cl.AntCollection.formicaria.colonies.name == 'Argentine Ant').all()
     assert result.one().name == 'Antopia'
 
 
 def test_it_can_filter_boolean_expressions(cl):
     result = cl.AntColony.query.filter(
-        ((cl.AntColony.name == 'Argentine Ant') |
-         (cl.AntColony.queen_size > 15)) &
-        cl.AntColony.color.in_(['red', 'brown'])
-    ).all()
+        ((cl.AntColony.name == 'Argentine Ant')
+         | (cl.AntColony.queen_size > 15))
+        & cl.AntColony.color.in_(['red', 'brown'])).all()
     expected = ['Fire Ant', 'Argentine Ant', 'Bulldog Ant']
     assert sorted([r.name for r in result]) == sorted(expected)
 

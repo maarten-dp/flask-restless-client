@@ -2,8 +2,8 @@ from unittest import mock
 
 import pytest
 
-from restless_client.property import LoadableProperty, FilterNode
 from restless_client.filter import ComparisonResult
+from restless_client.property import FilterNode, LoadableProperty
 
 
 @pytest.fixture
@@ -22,6 +22,7 @@ def Stub():
             self._connection = mock.Mock()
             self._client = kwargs.get('client', client)
             self.is_new = kwargs.get('is_new', False)
+
     return StubClass
 
 
@@ -73,5 +74,3 @@ def test_is_returns_relation_property(Stub):
         }
     }
     assert type(Stub.attribute1) == FilterNode
-
-

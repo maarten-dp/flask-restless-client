@@ -1,7 +1,7 @@
 import pytest
 
-from restless_client.filter import Query
 from restless_client.connection import Connection
+from restless_client.filter import Query
 
 
 class BaseObject:
@@ -74,13 +74,15 @@ def test_it_can_perform_a_last(query):
 
 
 def test_it_can_perform_a_one_or_none_and_returns_none(query, cl):
-    result = query.filter(cl.Formicarium.name == 'does not exist').one_or_none()
+    result = query.filter(
+        cl.Formicarium.name == 'does not exist').one_or_none()
     assert result is None
 
 
 def test_it_throws_an_error_when_one_or_none_returns_multiple_instances(query):
     with pytest.raises(Exception):
         query.one_or_none()
+
 
 def test_it_can_perform_a_get(query):
     result = query.get(1)

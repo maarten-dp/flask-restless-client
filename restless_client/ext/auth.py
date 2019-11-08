@@ -9,8 +9,14 @@ class AuthenticationError(Exception):
 
 
 class BaseSession(requests.Session):
-    def __init__(self, url=None, username=None, password=None, token=None,
-                 verify=True, trust_env=True, **kwargs):
+    def __init__(self,
+                 url=None,
+                 username=None,
+                 password=None,
+                 token=None,
+                 verify=True,
+                 trust_env=True,
+                 **kwargs):
         super().__init__()
         self.verify = verify
         self.trust_env = trust_env
@@ -32,7 +38,9 @@ class BaseSession(requests.Session):
         try:
             json_data = res.json()
         except Exception:
-            json_data = {'message': 'Unspecified error ({})'.format(res.content)}
+            json_data = {
+                'message': 'Unspecified error ({})'.format(res.content)
+            }
         # prepare error message
         res.reason = "{} ({})".format(res.reason, json_data)
         # raise if needed
@@ -62,14 +70,14 @@ class BearerSession(BaseSession):
         try:
             token = r.json().get('access_token')
         except Exception as e:
-            raise AuthenticationError("An error occured when authenticating".format(e))
+            raise AuthenticationError(
+                "An error occured when authenticating".format(e))
 
         if not token:
             msg = ('An error occurred when authenticating: %s' % r.json())
             AuthenticationError(msg)
-        self.headers.update({
-            self.bearer_header: '{} {}'.format(self.bearer_prefix, token)
-        })
+        self.headers.update(
+            {self.bearer_header: '{} {}'.format(self.bearer_prefix, token)})
 
 
 def Session(*args, **kwargs):

@@ -1,9 +1,9 @@
 import logging
-import crayons
-from itertools import chain
 from datetime import date, datetime
+from itertools import chain
 
-from .models import BaseObject
+import crayons
+
 from .utils import State, pretty_logger
 
 logger = logging.getLogger('restless-client')
@@ -11,10 +11,11 @@ LOAD_MSG = 'loading {}.{} with value {}'
 
 
 def log(o, a, v, attr_color='red'):
-    logger.info(LOAD_MSG.format(
-        crayons.yellow(o.__class__.__name__, always=True, bold=True),
-        getattr(crayons, attr_color)(a, always=True, bold=True),
-        crayons.green(str(v)[:150], always=True, bold=True)))
+    logger.info(
+        LOAD_MSG.format(
+            crayons.yellow(o.__class__.__name__, always=True, bold=True),
+            getattr(crayons, attr_color)(a, always=True, bold=True),
+            crayons.green(str(v)[:150], always=True, bold=True)))
 
 
 def log_loading(color):
@@ -24,6 +25,7 @@ def log_loading(color):
             return fn(self, obj, field, val, *args, **kwargs)
 
         return execute
+
     return decorator
 
 
@@ -55,7 +57,7 @@ class ObjectSerializer:
                 value.save()
             value = {value._pk_name: value._pkval}
         if isinstance(value, (date, datetime)):
-            value =  value.isoformat()
+            value = value.isoformat()
         if isinstance(value, (list, set, tuple)):
             value = [self.clean(attr, v, autosave) for v in value]
         return value

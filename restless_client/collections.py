@@ -1,4 +1,5 @@
 import logging
+
 from prettytable import PrettyTable
 
 logger = logging.getLogger('restless-client')
@@ -14,7 +15,9 @@ def update_backref(remove):
             if self.for_attr:
                 self._update_backref(item, self.for_attr, remove=remove)
             return res
+
         return decorator
+
     return outer_decorator
 
 
@@ -111,7 +114,8 @@ class ObjectCollection(list):
 
         for obj in self:
             values = obj._values
-            pt.add_row([truncate(str(values.get(header))) for header in headers])
+            pt.add_row(
+                [truncate(str(values.get(header))) for header in headers])
         res = pt.get_string(border=False, sortby="id")
         if not res:
             pt.add_row(['' for header in headers])

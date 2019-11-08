@@ -1,10 +1,10 @@
-import re
-from dateutil import parser
-from prettytable import PrettyTable
-from pytz import UTC
 import logging
-from enum import Enum
+import re
 from contextlib import contextmanager
+from enum import Enum
+
+from dateutil import parser
+from pytz import UTC
 
 LIKELY_PARSABLE_DATETIME = r"^(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2})|(\d{8}T\d{6}Z?)"
 logger = logging.getLogger('restless-client')
@@ -65,9 +65,9 @@ class RelationHelper:
         self.opts = opts
         self.relations = relations
 
-    def type(self, name):
+    def type(self, name):  # noqa A003
         return self.relations[name]['relation_type']
-    
+
     def model_name(self, name):
         return self.relations[name]['foreign_model']
 
@@ -87,11 +87,13 @@ class RelationHelper:
 
     def is_valid_instance(self, name, instance):
         if name in self.relations.keys() and self.is_scalar(name):
-            allowed = (self.model(name), self.opts.LoadableProperty, type(None))
+            allowed = (self.model(name), self.opts.LoadableProperty,
+                       type(None))
             if not isinstance(instance, allowed):
                 msg = '{} must be an instance of {}, not {}'
-                raise Exception(msg.format(
-                    name, self.model_name(name), instance.__class__.__name__))
+                raise Exception(
+                    msg.format(name, self.model_name(name),
+                               instance.__class__.__name__))
 
 
 @contextmanager

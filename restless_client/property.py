@@ -1,7 +1,7 @@
 import logging
 
+from restless_client.filter import ComparisonResult, FilterMixIn
 from restless_client.utils import State
-from restless_client.filter import FilterMixIn, ComparisonResult
 
 logger = logging.getLogger('restless-client')
 NOT_UPDATING_MSG = "Not updating {}.{} (dirty and in load state)"
@@ -46,12 +46,14 @@ class FilterNode(FilterMixIn):
         self.rel_type = None
         self.is_leaf = True
         if parent_attribute in parent._relations:
-            self.rel_type = parent._relations[parent_attribute]['relation_type']
+            self.rel_type = parent._relations[parent_attribute][
+                'relation_type']
             class_name = parent._relations[parent_attribute]['foreign_model']
             self.klass = parent._client._classes[class_name]
 
     def __getattr__(self, attr):
-        if attr not in self.klass.attributes() and attr not in self.klass.relations():
+        if attr not in self.klass.attributes(
+        ) and attr not in self.klass.relations():
             msg = '{} has no attribute named {}'
             raise AttributeError(msg.format(self.klass._class_name, attr))
         return FilterNode(self.klass, attr, parent_node=self)
@@ -78,6 +80,7 @@ class FilterNode(FilterMixIn):
             for klass in val.__class__.__bases__:
                 if klass.__name__ == 'BaseObject':
                     val = val._pkval
-                    rel_def = self.parent_klass._relations[self.parent_attribute]
+                    rel_def = self.parent_klass._relations[
+                        self.parent_attribute]
                     attribute = rel_def['local_column']
         return attribute, val

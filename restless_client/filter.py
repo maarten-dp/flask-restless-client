@@ -1,12 +1,10 @@
-import logging
 import json
+import logging
 
 logger = logging.getLogger('restless-client')
 
-INVERT_OPERATORS = [
-    ('==', '!='), ('>', '<='), ('<', '>='), ('>=', '<'),
-    ('<=', '>'), ('in', 'not_in'), ('is_null', 'is_not_null')
-]
+INVERT_OPERATORS = [('==', '!='), ('>', '<='), ('<', '>='), ('>=', '<'),
+                    ('<=', '>'), ('in', 'not_in'), ('is_null', 'is_not_null')]
 INVERT_MAPPING = {}
 for a, b in INVERT_OPERATORS:
     INVERT_MAPPING[a] = b
@@ -14,7 +12,9 @@ for a, b in INVERT_OPERATORS:
 
 
 def is_filter_result(f, operator):
-    assert isinstance(f, (BooleanResult, ComparisonResult)), 'Wrong use of {}'.format(operator)
+    assert isinstance(
+        f,
+        (BooleanResult, ComparisonResult)), 'Wrong use of {}'.format(operator)
 
 
 class FilterCollection(list):
@@ -57,7 +57,8 @@ class ComparisonResult:
 
     def __invert__(self):
         if self.op not in INVERT_MAPPING:
-            raise Exception('{} is not a valid invert candidate'.format(self.op))
+            raise Exception('{} is not a valid invert candidate'.format(
+                self.op))
         return ComparisonResult(self.name, INVERT_MAPPING[self.op], self.val)
 
     def __and__(self, other):
@@ -127,7 +128,7 @@ class Query:
         self.cls = cls
         self._query = {}
 
-    def filter(self, *queries):
+    def filter(self, *queries):  # noqa A003
         q = []
         for query in queries:
             is_filter_result(query, 'filter')
@@ -138,7 +139,7 @@ class Query:
         return self
 
     def filter_by(self, **kwargs):
-        filters = []
+        filters = []  # noqa F841
         for attr, value in kwargs.items():
             self.filter(getattr(self.cls, attr) == value)
         return self
@@ -178,8 +179,9 @@ class Query:
 
     def one(self):
         self._query['single'] = True
-        return self.connection.load_query(
-            self.cls, single=True, q=self._get_query())
+        return self.connection.load_query(self.cls,
+                                          single=True,
+                                          q=self._get_query())
 
     def one_or_none(self):
         try:
@@ -188,7 +190,7 @@ class Query:
             if 'Multiple results found' in str(e):
                 raise e
 
-    def all(self):
+    def all(self):  # noqa A003
         return self.connection.load_query(self.cls, q=self._get_query())
 
     def get(self, oid):

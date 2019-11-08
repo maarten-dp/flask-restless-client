@@ -18,8 +18,7 @@ class TypedList(list):
 @pytest.fixture
 def ds():
     return ObjectDeserializer(
-        Mock(),
-        Mock(
+        Mock(), Mock(
             TypedListClass=TypedList,
             BaseObject=Mock,
         ))
@@ -27,12 +26,7 @@ def ds():
 
 @pytest.fixture
 def s():
-    return ObjectSerializer(
-        Mock(),
-        Mock(
-            BaseObject=Mock
-        )
-    )
+    return ObjectSerializer(Mock(), Mock(BaseObject=Mock))
 
 
 def test_it_can_deserialize_an_attribute(ds):
@@ -73,18 +67,16 @@ def test_it_can_deserialize_a_o2o_relation(ds):
 def setup_obj():
     relhelper = Mock()
     relhelper.column_name.side_effect = lambda x: x
-    obj = Mock(
-        _pk_name='id',
-        _relhelper=relhelper,
-        _values={
-            'id': 1,
-            'attr1': 'someattr',
-            'somedate': datetime(2018, 1, 1),
-            'somelist': [1, 2, 3],
-            'rel1': Mock(_pkval=2, _pk_name='id'),
-            'rel2': [Mock(_pkval=3, _pk_name='id')],
-        }
-    )
+    obj = Mock(_pk_name='id',
+               _relhelper=relhelper,
+               _values={
+                   'id': 1,
+                   'attr1': 'someattr',
+                   'somedate': datetime(2018, 1, 1),
+                   'somelist': [1, 2, 3],
+                   'rel1': Mock(_pkval=2, _pk_name='id'),
+                   'rel2': [Mock(_pkval=3, _pk_name='id')],
+               })
     obj.attributes.return_value = ['id', 'attr1', 'somedate', 'somelist']
     obj.relations.return_value = ['rel1', 'rel2']
     return obj
@@ -98,8 +90,12 @@ def test_it_can_serialize_an_object(s):
         'attr1': 'someattr',
         'somedate': '2018-01-01T00:00:00',
         'somelist': [1, 2, 3],
-        'rel1': {'id': 2},
-        'rel2': [{'id': 3}]
+        'rel1': {
+            'id': 2
+        },
+        'rel2': [{
+            'id': 3
+        }]
     }
 
 
@@ -107,7 +103,4 @@ def test_it_can_serialize_a_dirty_object(s):
     obj = setup_obj()
     obj._dirty = set(['attr1', 'rel1'])
     result = s.serialize_dirty(obj)
-    assert result == {
-        'attr1': 'someattr',
-        'rel1': {'id': 2}
-    }
+    assert result == {'attr1': 'someattr', 'rel1': {'id': 2}}

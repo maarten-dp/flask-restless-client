@@ -1,0 +1,40 @@
+language: python
+python:
+- 3.6
+install:
+- pip install -U pip wheel
+- pip install -U -r requirements-dev.txt
+- pip install .
+cache:
+  directories:
+  - "$HOME/.cache/pip"
+stages:
+- test
+- linter
+- name: deploy
+  if: tag IS present
+jobs:
+  include:
+  - stage: test
+    name: Tests
+    script: pytest --cov-report=term-missing --cov=restless_client
+    after_success:
+    - codecov
+  - stage: linter
+    name: Linter
+    script: pre-commit run --all-files --show-diff-on-failure
+  - stage: deploy
+    name: PyPI Deploy
+    script: skip
+    install: skip
+    before_install: skip
+    deploy:
+      skip_cleanup: true
+      provider: pypi
+      distributions: sdist bdist_wheel
+      user: maartendp
+      on:
+        tags: true
+        repo: maartendp/flask-restless-client
+      password:
+        secure: yiYm5kXa5EYl2HNAJQuPe3qC6T2T5zVkJkd2c4+aKR+8F5JtSKe78e+FnblQdPmcoALXZoM0Drowm03bBq35siAYUsk3xCsQFr24Ib4g+p34Gy4vJ5LC1J8lKFk2qWkUIzNvo0kzFLc6smDm3ISwnunFytMneB4Z7teuyoVIz9ZUCwgeKGgdWsNEwBjdu/aSqiUS33naAJFV8nLcq2tQ0CatGLJ5cHIzehB7NhldLwS0QLvcEKxNIVJFy0KFEbdWk4x5rYOVLQqlMKOXTlCzpSzr38cbzbPfrE9DEBwo/GChOlryUP6OXz0mdmAPSvSXv618twFIPREpNq72bZwHhjcmkQRVCcedsKLPa8sh2gI1iVOhIsnQoadvO3sz6zYgphF2ilBigODKZzPPE01BRkHQ+3UvgnpZrcihlTPlkbvhrgW6kjeZD4RLyk4Nms5Lh448nLixxnBnGrK1WCdIqEAdG2cOvxDe7ale52+QibR5mci6ZMPEZCHuZewcZid9GlryaZvABpzXbnXeg7kPdAvcunMUdnfnp8jbF6VvB83La4JaZhhWOzOLElbqH6aoy6QcXpT6WqE5a5uQu0+BT/9xpVt9pF+fwVFUIoRz0uXJ5CdCaeVJIErX0xCw0j9M+phXESxQZJVpP13uPR5VdQ2Jtg4SlTcglVWhMc57a0c=

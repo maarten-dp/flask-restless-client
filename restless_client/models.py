@@ -1,11 +1,12 @@
-from .filter import Query
-from .utils import urljoin, generate_id, State
-from .collections import TypedList
 import logging
-import crayons
 from itertools import chain
 
+import crayons
+
+from .utils import generate_id
+
 logger = logging.getLogger('restless-client')
+
 
 def get_class(cls, kwargs):
     if not cls._polymorphic.get('identities'):
@@ -19,8 +20,8 @@ def get_class(cls, kwargs):
 class BaseObject:
     def __init__(self, **kwargs):
         oid = self._pk_name
-        super().__setattr__(
-            oid, kwargs[oid] if oid in kwargs else generate_id())
+        super().__setattr__(oid,
+                            kwargs[oid] if oid in kwargs else generate_id())
         self._deserializer.load(self, kwargs)
         self._client._register(self)
 
@@ -47,7 +48,7 @@ class BaseObject:
         self._relhelper.is_valid_instance(name, value)
         object.__setattr__(self, name, value)
 
-    @classmethod
+    @classmethod  # noqa A003
     def all(cls):
         # shorthand for Class.query.all()
         return cls.query.all()
@@ -99,4 +100,5 @@ class BaseObject:
         attributes = ["{}: {}".format(self._pk_name, self._pkval)]
         if hasattr(self, 'name'):
             attributes.append("name: {}".format(self.name))
-        return "<{} [{}]>".format(self.__class__.__name__, " | ".join(attributes))
+        return "<{} [{}]>".format(self.__class__.__name__,
+                                  " | ".join(attributes))

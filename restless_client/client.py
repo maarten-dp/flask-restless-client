@@ -1,17 +1,19 @@
-from .connection import Connection
-from .property import LoadableProperty
-from .filter import Query
-from .utils import urljoin, State, get_depth, RelationHelper
-from .collections import ObjectCollection, TypedList
-from .marshal import ObjectDeserializer, ObjectSerializer
-from .models import BaseObject
-from .ext.auth import BaseSession, Session
-from contextlib import contextmanager
-import crayons
 import logging
 import sys
+from contextlib import contextmanager
 from itertools import chain
+
 import cereal_lazer as sr
+import crayons
+
+from .collections import ObjectCollection, TypedList
+from .connection import Connection
+from .ext.auth import Session
+from .filter import Query
+from .marshal import ObjectDeserializer, ObjectSerializer
+from .models import BaseObject
+from .property import LoadableProperty
+from .utils import RelationHelper, State, get_depth, urljoin
 
 
 def register_serializer(model):
@@ -25,8 +27,9 @@ def register_serializer(model):
 
 
 class DepthFilter(logging.Filter):
-    def filter(self, record):
-        record.depth = crayons.yellow('{}>'.format('-' * get_depth()), True, True)
+    def filter(self, record):  # noqa A003
+        record.depth = crayons.yellow('{}>'.format('-' * get_depth()), True,
+                                      True)
         return True
 
 
@@ -63,16 +66,14 @@ class Options:
         self.Method = opts.pop('method_class', Method)
 
         self.debug = opts.pop('debug', True)
-        self.data_model_endpoint = opts.pop(
-            'data_model_endpoint', 'flask-restless-datamodel')
+        self.data_model_endpoint = opts.pop('data_model_endpoint',
+                                            'flask-restless-datamodel')
 
         if 'session' in opts:
             self.session = opts.pop('session')
         else:
             auth_url = opts.pop('auth_url', urljoin(opts['base_url'], 'auth'))
-            self.session = Session(
-                auth_url, **opts
-            )
+            self.session = Session(auth_url, **opts)
 
 
 class Method:
@@ -89,13 +90,13 @@ class Method:
         url = '{}/{}/{}'.format(obj._method_url, obj._pkval, self.name)
         payload = {'payload': self.serialize_params(args, kwargs)}
         result = self.connection.request(url, http_method='post', json=payload)
-        return sr.loads(result['payload'], fmt='msgpack')
+        result = sr.loads(result['payload'], fmt='msgpack')
+        # if isinstance(result, list):
+        #     result = [sr.loads(r) for r in result]
+        return result
 
     def serialize_params(self, args, kwargs):
-        return sr.dumps({
-            'args': args,
-            'kwargs': kwargs
-        }, fmt='msgpack')
+        return sr.dumps({'args': args, 'kwargs': kwargs}, fmt='msgpack')
 
     def validate_params(self, args, kwargs):
         if not self.argsvar and len(args) < len(self.args):
@@ -106,7 +107,6 @@ class Method:
         if not self.kwargsvar and kwdiff:
             msg = "{}() got an unexpected keyword argument '{}'"
             TypeError(msg.format(self.name, kwdiff.pop()))
-
 
 
 class ClassConstructor:
@@ -123,14 +123,14 @@ class ClassConstructor:
             '_relations': details['relations'],
             '_methods': details['methods'].keys(),
             '_base_url': urljoin(self.client.model_url, name.lower()),
-            '_method_url': urljoin(self.client.model_url, 'method', name.lower()),
+            '_method_url': urljoin(self.client.model_url, 'method',
+                                   name.lower()),
             '_connection': self.client.connection,
             '_deserializer': self.client.deserializer,
             '_polymorphic': details.get('polymorphic', {}),
-            '_relhelper': self.opts.RelationHelper(
-                self.client, self.opts, details['relations'])
+            '_relhelper': self.opts.RelationHelper(self.client, self.opts,
+                                                   details['relations'])
         }
-        slots = []
         for field in chain(details['attributes'], details['relations']):
             attributes[field] = self.opts.LoadableProperty(field)
 
@@ -148,9 +148,12 @@ class ClassConstructor:
         register_serializer(klass)
 
     def construct_method(self, method, method_details):
-        method = self.opts.Method(method, method_details, self.client.connection)
+        method = self.opts.Method(method, method_details,
+                                  self.client.connection)
+
         def fn(self, *args, **kwargs):
             return method(self, *args, **kwargs)
+
         return fn
 
 

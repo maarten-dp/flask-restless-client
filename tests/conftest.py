@@ -1,27 +1,29 @@
+import os
 import time
-import pytest
-import flask_restless
-from flask import Flask
+from contextlib import contextmanager
 from multiprocessing import Process
-from flask_sqlalchemy import SQLAlchemy
+
+import cereal_lazer
+import flask_restless
+import pytest
 from fast_alchemy import FlaskFastAlchemy
+from flask import Flask
+from flask_restless_datamodel import DataModel
+from flask_sqlalchemy import SQLAlchemy
+from requests_flask_adapter import Session
+
 from restless_client import Client
 from restless_client.ext.auth import BaseSession
-from flask_restless_datamodel import DataModel
-from requests_flask_adapter import Session
-import os
-import cereal_lazer
-from contextlib import contextmanager
 
 ROOT_DIR = os.path.dirname(__file__)
 DATA_DIR = os.path.join(ROOT_DIR, 'data')
 API_METHODS = ['GET', 'PUT', 'POST', 'DELETE']
 
-
 server_class_by_name = cereal_lazer.NAME_BY_CLASS
 server_name_by_class = cereal_lazer.serialize.all.CLASSES_BY_NAME
 client_class_by_name = {}
 client_name_by_class = {}
+
 
 @contextmanager
 def client_context():
@@ -102,9 +104,7 @@ def fcl(filters):
 @pytest.fixture
 def mcl(instances):
     class Apartment(instances.Formicarium):
-        __mapper_args__ = {
-            'polymorphic_identity': 'apartment'
-        }
+        __mapper_args__ = {'polymorphic_identity': 'apartment'}
 
         def function_without_params(self):
             return 5
@@ -124,7 +124,6 @@ def mcl(instances):
         def function_with_an_object(self, obj):
             assert isinstance(obj, instances.AntColony)
             return obj
-
 
     Apartment.__tablename__ = 'apartment'
 
