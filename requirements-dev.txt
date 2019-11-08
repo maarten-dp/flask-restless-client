@@ -10,3 +10,5 @@ pytest >= 4.5.0
 pytest-cov
 pytest-xdist
 yapf
+
+Flask-Restless==0.17.0
