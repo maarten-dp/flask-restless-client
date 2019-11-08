@@ -13,6 +13,7 @@ AntCollection:
       location: My friend's house
 
 Formicarium:
+  ref: name
   definition:
     name: String
     formicarium_type: String
