@@ -59,6 +59,17 @@ class UserException(Exception):
     pass
 
 
+class LoadingManager:
+    def __init__(self, client):
+        self.client = client
+
+    def __enter__(self):
+        self.client.state = State.LOADING
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.client.state = State.LOADABLE
+
+
 class RelationHelper:
     def __init__(self, client, opts, relations):
         self.client = client

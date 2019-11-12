@@ -1,6 +1,6 @@
 import logging
 import pprint
-from functools import partial
+from functools import partial, wraps
 
 import requests
 from ordered_set import OrderedSet
@@ -13,6 +13,7 @@ logger = logging.getLogger('restless-client')
 
 
 def log(fn):
+    @wraps(fn)
     def decorator(*args, **kwargs):
         logger.debug('kwargs: {}'.format(pprint.pformat(kwargs)))
         res = fn(*args, **kwargs)
@@ -23,6 +24,7 @@ def log(fn):
 
 
 def lock_loading(fn):
+    @wraps(fn)
     def decorator(self, obj, *args, **kwargs):
         with obj._client.loading:
             return fn(self, obj, *args, **kwargs)

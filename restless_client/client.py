@@ -1,6 +1,5 @@
 import logging
 import sys
-from contextlib import contextmanager
 from itertools import chain
 
 import cereal_lazer as sr
@@ -13,7 +12,7 @@ from .filter import Query
 from .marshal import ObjectDeserializer, ObjectSerializer
 from .models import BaseObject
 from .property import LoadableProperty
-from .utils import RelationHelper, State, get_depth, urljoin
+from .utils import LoadingManager, RelationHelper, State, get_depth, urljoin
 
 
 def register_serializer(model):
@@ -91,8 +90,6 @@ class Method:
         payload = {'payload': self.serialize_params(args, kwargs)}
         result = self.connection.request(url, http_method='post', json=payload)
         result = sr.loads(result['payload'], fmt='msgpack')
-        # if isinstance(result, list):
-        #     result = [sr.loads(r) for r in result]
         return result
 
     def serialize_params(self, args, kwargs):
@@ -190,11 +187,8 @@ class Client:
             self.constructor.construct_class(name, details)
 
     @property
-    @contextmanager
     def loading(self):
-        self.state = State.LOADING
-        yield
-        self.state = State.LOADABLE
+        return LoadingManager(self)
 
     @property
     def is_loading(self):
