@@ -127,7 +127,8 @@ def mcl(instances):
 
     Apartment.__tablename__ = 'apartment'
 
-    instances.db.session.add(Apartment(name='ApAntMent'))
+    apt = Apartment(name='ApAntMent')
+    instances.db.session.add(apt)
     instances.db.session.commit()
 
     instances.manager.create_api(Apartment, methods=API_METHODS)
