@@ -1,7 +1,8 @@
 exclude: >
   (?x)^(
   docs|
-  Makefile
+  Makefile|
+  requirements-dev.txt
   )
 
 repos:
