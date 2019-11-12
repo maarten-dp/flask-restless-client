@@ -123,6 +123,9 @@ def mcl(instances):
             assert isinstance(obj, instances.AntColony)
             return obj
 
+        def function_creating_object(self):
+            return Apartment(name="NewOneBaby")
+
     Apartment.__tablename__ = 'apartment'
 
     apt = Apartment(name='ApAntMent')

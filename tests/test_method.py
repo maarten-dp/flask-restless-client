@@ -31,3 +31,9 @@ def test_it_can_run_a_remote_method_with_an_object_as_param(mcl, apt):
     res = apt.function_with_an_object(colony)
     assert isinstance(res, mcl.AntColony)
     assert res.name == colony.name
+
+
+def test_it_can_return_newly_created_object(mcl, apt):
+    res = apt.function_creating_object()
+    assert isinstance(res, mcl.Apartment)
+    assert res.name == "NewOneBaby"
