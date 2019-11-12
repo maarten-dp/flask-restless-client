@@ -1,7 +1,5 @@
 import os
-import time
 from contextlib import contextmanager
-from multiprocessing import Process
 
 import cereal_lazer
 import flask_restless

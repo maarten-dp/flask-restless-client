@@ -6,7 +6,7 @@ import requests
 from ordered_set import OrderedSet
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
-from .utils import parse_custom_types, urljoin
+from .utils import State, parse_custom_types, urljoin
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 logger = logging.getLogger('restless-client')
