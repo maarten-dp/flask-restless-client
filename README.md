@@ -31,7 +31,7 @@ Most likely, it will be a thin layer on top of the flask-restless-client setting
 ### Exposing your model server side
 
 The first step is to enable the flask-restless-datamodel on the server side.
-You can visit [flask-restless-datamode](https://github.com/maarten-dp/flask-restless-datamodel/tree/master) to see how to do this.
+You can visit [flask-restless-datamodel](https://github.com/maarten-dp/flask-restless-datamodel/tree/master) to see how to do this.
 
 ### Authenticating
 
