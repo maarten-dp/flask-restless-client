@@ -46,10 +46,6 @@ def raise_on_locked(fn):
     return decorator
 
 
-class RestlessError(Exception):
-    pass
-
-
 class Connection:
     def __init__(self, client, opts):
         self.client = client

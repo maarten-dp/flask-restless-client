@@ -125,6 +125,9 @@ def mcl(instances):
             assert isinstance(obj, instances.AntColony)
             return obj
 
+        def function_with_uncommitted_object(self):
+            return Apartment(name='Oof-Owie')
+
     Apartment.__tablename__ = 'apartment'
 
     instances.db.session.add(Apartment(name='ApAntMent'))

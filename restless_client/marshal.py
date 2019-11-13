@@ -45,6 +45,9 @@ class ObjectSerializer:
         # create attribute dict
         if obj._pk_name in to_serialize:
             to_serialize.remove(obj._pk_name)
+        return self._raw_serialize(obj, to_serialize, autosave)
+
+    def _raw_serialize(self, obj, to_serialize, autosave=False):
         object_dict = {}
         for attr in to_serialize:
             value = obj._values[attr]

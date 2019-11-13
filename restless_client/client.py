@@ -17,10 +17,11 @@ from .utils import LoadingManager, RelationHelper, State, get_depth, urljoin
 
 def register_serializer(model):
     def load_model(value):
-        return model.query.get(value)
+        return model(**value)
 
     def serialize_model(value):
-        return value._pkval
+        to_serialize = list(chain(value.attributes(), value.relations()))
+        return model._serializer._raw_serialize(value, to_serialize)
 
     sr.register_class(model._class_name, model, serialize_model, load_model)
 
@@ -49,7 +50,7 @@ class Options:
         self.ConnectionClass = opts.pop('connection', Connection)
         # takes care of populating instances based on the given kwargs
         self.DeserializeClass = opts.pop('deserializer', ObjectDeserializer)
-        self.SerializeClass = opts.pop('deserializer', ObjectSerializer)
+        self.SerializeClass = opts.pop('serializer', ObjectSerializer)
         self.RelationHelper = opts.pop('relhelper', RelationHelper)
         # takes care of building the classes
         self.ConstructorClass = opts.pop('constructor', ClassConstructor)
@@ -124,6 +125,7 @@ class ClassConstructor:
                                    name.lower()),
             '_connection': self.client.connection,
             '_deserializer': self.client.deserializer,
+            '_serializer': self.client.serializer,
             '_polymorphic': details.get('polymorphic', {}),
             '_relhelper': self.opts.RelationHelper(self.client, self.opts,
                                                    details['relations'])

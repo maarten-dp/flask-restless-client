@@ -30,3 +30,10 @@ def test_it_can_run_a_remote_method_with_an_object_as_param(mcl):
     res = mcl.Apartment.query.one().function_with_an_object(colony)
     assert isinstance(res, mcl.AntColony)
     assert res.name == colony.name
+
+
+def test_it_can_run_a_remote_method_returning_uncommitted_obj(mcl):
+    res = mcl.Apartment.query.one().function_with_uncommitted_object()
+    assert isinstance(res, mcl.Apartment)
+    assert res.name == 'Oof-Owie'
+    assert not res._pkval
