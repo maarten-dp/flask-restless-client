@@ -64,6 +64,7 @@ class Options:
         self.LoadableProperty = opts.pop('loadable_property', LoadableProperty)
         # how to reach the server when calling an object function
         self.Method = opts.pop('method_class', Method)
+        self.ServerProperty = opts.pop('server_property_class', ServerProperty)
 
         self.debug = opts.pop('debug', True)
         self.data_model_endpoint = opts.pop('data_model_endpoint',
@@ -107,6 +108,24 @@ class Method:
             TypeError(msg.format(self.name, kwdiff.pop()))
 
 
+class ServerProperty:
+    def __init__(self, attribute, connection, base_url):
+        self.attribute = attribute
+        self.connection = connection
+        self.url = '{}/property'.format(base_url)
+
+    def __get__(self, obj, objtype=None):
+        if objtype and obj is None:
+            return self
+        content = {'object': obj, 'property': self.attribute}
+        payload = {'payload': sr.dumps(content, fmt='msgpack')}
+        result = self.connection.request(self.url,
+                                         http_method='post',
+                                         json=payload)
+        result = sr.loads(result['payload'], fmt='msgpack')
+        return result
+
+
 class ClassConstructor:
     def __init__(self, client, opts):
         self.client = client
@@ -118,6 +137,7 @@ class ClassConstructor:
             '_class_name': name,
             '_pk_name': details['pk_name'],
             '_attrs': details['attributes'],
+            '_properties': details['properties'],
             '_relations': details['relations'],
             '_methods': details['methods'].keys(),
             '_base_url': urljoin(self.client.model_url, name.lower()),
@@ -132,6 +152,10 @@ class ClassConstructor:
         }
         for field in chain(details['attributes'], details['relations']):
             attributes[field] = self.opts.LoadableProperty(field)
+
+        for field in details['properties']:
+            attributes[field] = self.opts.ServerProperty(
+                field, self.client.connection, self.client.model_url)
 
         for method, method_details in details['methods'].items():
             attributes[method] = self.construct_method(method, method_details)

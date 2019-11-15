@@ -37,3 +37,7 @@ def test_it_can_run_a_remote_method_returning_uncommitted_obj(mcl):
     assert isinstance(res, mcl.Apartment)
     assert res.name == 'Oof-Owie'
     assert not res._pkval
+
+
+def test_it_can_get_a_remote_property(mcl):
+    assert mcl.Apartment.query.one().some_property == 'a_property_value'

@@ -106,6 +106,10 @@ def mcl(instances):
     class Apartment(instances.Formicarium):
         __mapper_args__ = {'polymorphic_identity': 'apartment'}
 
+        @property
+        def some_property(self):
+            return 'a_property_value'
+
         def function_without_params(self):
             return 5
 

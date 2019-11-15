@@ -50,6 +50,8 @@ class ObjectSerializer:
     def _raw_serialize(self, obj, to_serialize, autosave=False):
         object_dict = {}
         for attr in to_serialize:
+            if attr not in obj._values:
+                continue
             value = obj._values[attr]
             object_dict[attr] = self.clean(attr, value, autosave)
         return object_dict
