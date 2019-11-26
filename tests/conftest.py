@@ -107,8 +107,8 @@ def fcl(filters):
 
 
 @pytest.fixture
-def mcl(app, instances):
-    class Apartment(app.Formicarium):
+def mcl(app, session, instances):
+    class Apartment(instances.Formicarium):
         __mapper_args__ = {'polymorphic_identity': 'apartment'}
 
         @property
@@ -139,8 +139,8 @@ def mcl(app, instances):
 
     Apartment.__tablename__ = 'apartment'
 
-    app.db.session.add(Apartment(name='ApAntMent'))
-    app.db.session.commit()
+    session.add(Apartment(name='ApAntMent'))
+    session.commit()
 
     app.manager.create_api(Apartment, methods=API_METHODS)
 
