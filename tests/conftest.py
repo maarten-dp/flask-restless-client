@@ -74,11 +74,16 @@ def app():
 
 
 @pytest.fixture(scope='function')
+def session(app):
+    return app.db.session
+
+
+@pytest.fixture(scope='function')
 def instances(app):
     fa = FlaskFastAlchemy(app.db)
     fa.load(os.path.join(DATA_DIR, 'instances.yaml'))
     build_endpoints(app, fa)
-    return app
+    return fa
 
 
 @pytest.fixture(scope='function')
@@ -90,8 +95,8 @@ def filters(app):
 
 
 @pytest.fixture
-def cl(instances):
-    RaiseSession.register('http://app', instances)
+def cl(app, instances):
+    RaiseSession.register('http://app', app)
     return Client(url='http://app/api', session=RaiseSession(), debug=True)
 
 
@@ -102,7 +107,7 @@ def fcl(filters):
 
 
 @pytest.fixture
-def mcl(instances):
+def mcl(app, session, instances):
     class Apartment(instances.Formicarium):
         __mapper_args__ = {'polymorphic_identity': 'apartment'}
 
@@ -126,7 +131,7 @@ def mcl(instances):
             return self.function_with_params(param1, param2)
 
         def function_with_an_object(self, obj):
-            assert isinstance(obj, instances.AntColony)
+            assert isinstance(obj, app.AntColony)
             return obj
 
         def function_with_uncommitted_object(self):
@@ -134,12 +139,12 @@ def mcl(instances):
 
     Apartment.__tablename__ = 'apartment'
 
-    instances.db.session.add(Apartment(name='ApAntMent'))
-    instances.db.session.commit()
+    session.add(Apartment(name='ApAntMent'))
+    session.commit()
 
-    instances.manager.create_api(Apartment, methods=API_METHODS)
+    app.manager.create_api(Apartment, methods=API_METHODS)
 
-    RaiseSession.register('http://app', instances)
+    RaiseSession.register('http://app', app)
 
     with client_context():
         yield Client(url='http://app/api', session=RaiseSession(), debug=True)
