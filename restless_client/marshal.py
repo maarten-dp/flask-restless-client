@@ -89,6 +89,7 @@ class ObjectDeserializer:
             'ONETOMANY': self.handle_o2m,
             'MANYTOONE': self.handle_m2o,
             'ONETOONE': self.handle_o2o,
+            'MANYTOMANY': self.handle_o2m,
         }
         for field in obj._relations.keys():
             val = raw.get(field, State.VOID)
