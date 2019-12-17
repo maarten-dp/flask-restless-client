@@ -30,6 +30,14 @@ def test_it_can_perform_an_all(query):
     assert len(result) == 5
 
 
+def test_it_can_perform_an_all_on_several_pages(session, instances, query):
+    for i in range(100):
+        session.add(instances.Formicarium(name=f"MrNobody{i}"))
+    session.commit()
+    result = query.all()
+    assert len(result) == 105
+
+
 def test_it_can_perform_a_filter(query, cl):
     expected = 'Specimen-1'
     result = query.filter(cl.Formicarium.name == expected).one()

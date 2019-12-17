@@ -65,7 +65,7 @@ class Connection:
         for page in range(2, raw['total_pages'] + 1):
             kwargs['page'] = page
             objects.extend(
-                self.request(obj_class._base_url, **kwargs)['objects'])
+                self.request(obj_class._base_url, params=kwargs)['objects'])
 
         return self.opts.CollectionClass(
             obj_class, OrderedSet([obj_class(**obj) for obj in objects]))
