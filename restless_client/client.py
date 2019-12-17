@@ -2,8 +2,8 @@ import logging
 import sys
 from itertools import chain
 
-import cereal_lazer as sr
 import crayons
+from cereal_lazer import Cereal
 
 from .collections import ObjectCollection, TypedList
 from .connection import Connection
@@ -23,7 +23,8 @@ def register_serializer(model):
         to_serialize = list(chain(value.attributes(), value.relations()))
         return model._serializer._raw_serialize(value, to_serialize)
 
-    sr.register_class(model._class_name, model, serialize_model, load_model)
+    model._client.cereal.register_class(model._class_name, model,
+                                        serialize_model, load_model)
 
 
 class DepthFilter(logging.Filter):
@@ -70,6 +71,12 @@ class Options:
         self.data_model_endpoint = opts.pop('data_model_endpoint',
                                             'flask-restless-datamodel')
 
+        # cereal lazer options
+        # will return the raw data instead of raising an error when loading
+        self.raise_load_errors = opts.pop('raise_load_errors', True)
+        # will try to coerce non registered classes into an emulated object
+        self.serialize_naively = opts.pop('serialize_naively', False)
+
         if 'session' in opts:
             self.session = opts.pop('session')
         else:
@@ -91,11 +98,15 @@ class Method:
         url = '{}/{}/{}'.format(obj._method_url, obj._pkval, self.name)
         payload = {'payload': self.serialize_params(args, kwargs)}
         result = self.connection.request(url, http_method='post', json=payload)
-        result = sr.loads(result['payload'], fmt='msgpack')
+        result = self.cereal.loads(result['payload'])
         return result
 
+    @property
+    def cereal(self):
+        return self.connection.client.cereal
+
     def serialize_params(self, args, kwargs):
-        return sr.dumps({'args': args, 'kwargs': kwargs}, fmt='msgpack')
+        return self.cereal.dumps({'args': args, 'kwargs': kwargs})
 
     def validate_params(self, args, kwargs):
         if not self.argsvar and len(args) < len(self.args):
@@ -118,12 +129,16 @@ class ServerProperty:
         if objtype and obj is None:
             return self
         content = {'object': obj, 'property': self.attribute}
-        payload = {'payload': sr.dumps(content, fmt='msgpack')}
+        payload = {'payload': self.cereal.dumps(content)}
         result = self.connection.request(self.url,
                                          http_method='post',
                                          json=payload)
-        result = sr.loads(result['payload'], fmt='msgpack')
+        result = self.cereal.loads(result['payload'])
         return result
+
+    @property
+    def cereal(self):
+        return self.connection.client.cereal
 
 
 class ClassConstructor:
@@ -198,6 +213,10 @@ class Client:
         self.serializer = self.opts.SerializeClass(self, self.opts)
         self.deserializer = self.opts.DeserializeClass(self, self.opts)
         self.constructor = self.opts.ConstructorClass(self, self.opts)
+        self.cereal = Cereal(
+            serialize_naively=self.opts.serialize_naively,
+            raise_load_errors=self.opts.raise_load_errors,
+        )
         self.initialize()
 
     def initialize(self):

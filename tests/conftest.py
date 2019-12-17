@@ -19,38 +19,10 @@ ROOT_DIR = os.path.dirname(__file__)
 DATA_DIR = os.path.join(ROOT_DIR, 'data')
 API_METHODS = ['GET', 'PUT', 'POST', 'DELETE']
 
-server_class_by_name = cereal_lazer.NAME_BY_CLASS
-server_name_by_class = cereal_lazer.serialize.all.CLASSES_BY_NAME
-client_class_by_name = {}
-client_name_by_class = {}
-
-
-@contextmanager
-def client_context():
-    orig_name = cereal_lazer.NAME_BY_CLASS
-    orig_class = cereal_lazer.serialize.all.CLASSES_BY_NAME
-    cereal_lazer.NAME_BY_CLASS = client_class_by_name
-    cereal_lazer.serialize.all.CLASSES_BY_NAME = client_name_by_class
-    yield
-    cereal_lazer.NAME_BY_CLASS = orig_name
-    cereal_lazer.serialize.all.CLASSES_BY_NAME = orig_class
-
-
-@contextmanager
-def server_context():
-    orig_name = cereal_lazer.NAME_BY_CLASS
-    orig_class = cereal_lazer.serialize.all.CLASSES_BY_NAME
-    cereal_lazer.NAME_BY_CLASS = server_class_by_name
-    cereal_lazer.serialize.all.CLASSES_BY_NAME = server_name_by_class
-    yield
-    cereal_lazer.NAME_BY_CLASS = orig_name
-    cereal_lazer.serialize.all.CLASSES_BY_NAME = orig_class
-
 
 class RaiseSession(BaseSession, Session):
     def request(self, *args, **kwargs):
-        with server_context():
-            return super().request(*args, **kwargs)
+        return super().request(*args, **kwargs)
 
 
 def build_endpoints(app, fa):
@@ -141,5 +113,4 @@ def mcl(instances):
 
     RaiseSession.register('http://app', instances)
 
-    with client_context():
-        yield Client(url='http://app/api', session=RaiseSession(), debug=True)
+    yield Client(url='http://app/api', session=RaiseSession(), debug=True)
