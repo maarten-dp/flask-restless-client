@@ -34,9 +34,9 @@ class DepthFilter(logging.Filter):
         return True
 
 
-logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('restless-client')
 logger.addFilter(DepthFilter())
+
 steam_handler = logging.StreamHandler(sys.stdout)
 steam_handler.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(depth)s %(message)s')
