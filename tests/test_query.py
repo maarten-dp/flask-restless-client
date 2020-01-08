@@ -95,3 +95,9 @@ def test_it_throws_an_error_when_one_or_none_returns_multiple_instances(query):
 def test_it_can_perform_a_get(query):
     result = query.get(1)
     assert result.id == 1
+
+
+def test_query_does_not_set_attributs_as_dirty(fcl):
+    o = fcl.Object3
+    results = o.query.all()
+    assert not any([res._dirty for res in results])
