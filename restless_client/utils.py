@@ -62,12 +62,16 @@ class UserException(Exception):
 class LoadingManager:
     def __init__(self, client):
         self.client = client
+        self.active_contexts = 0
 
     def __enter__(self):
+        self.active_contexts += 1
         self.client.state = State.LOADING
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.client.state = State.LOADABLE
+        self.active_contexts -= 1
+        if self.active_contexts == 0:
+            self.client.state = State.LOADABLE
 
 
 class RelationHelper:
