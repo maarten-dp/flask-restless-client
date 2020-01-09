@@ -218,6 +218,7 @@ class Client:
             raise_load_errors=self.opts.raise_load_errors,
         )
         self.initialize()
+        self.__loading_manager = LoadingManager(self)
 
     def initialize(self):
         url = urljoin(self.base_url, self.opts.data_model_endpoint)
@@ -233,7 +234,7 @@ class Client:
 
     @property
     def loading(self):
-        return LoadingManager(self)
+        return self.__loading_manager
 
     @property
     def is_loading(self):
