@@ -8,7 +8,7 @@ from cereal_lazer import Cereal
 from .collections import ObjectCollection, TypedList
 from .connection import Connection
 from .ext.auth import Session
-from .filter import Query
+from .filter import QueryFactory
 from .marshal import ObjectDeserializer, ObjectSerializer
 from .models import BaseObject
 from .property import LoadableProperty
@@ -180,7 +180,7 @@ class ClassConstructor:
             parent = self.client._classes[details['polymorphic']['parent']]
             inherits.insert(0, parent)
         klass = type(str(name), tuple(inherits), attributes)
-        klass.query = Query(self.client.connection, klass)
+        klass.query = QueryFactory(self.client.connection, klass)
         self.client._classes[name] = klass
         setattr(self.client, name, klass)
         register_serializer(klass)

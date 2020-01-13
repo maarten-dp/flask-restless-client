@@ -122,6 +122,20 @@ class FilterMixIn:
         return val
 
 
+class QueryFactory:
+    def __init__(self, connection, cls):
+        self.connection = connection
+        self.cls = cls
+
+    def __get__(self, obj, objtype=None):
+        if obj:
+            raise AttributeError('Cannot call query on from an instance')
+        return Query(self.connection, self.cls)
+
+    def __set__(self, obj, value):
+        raise ValueError('Cannot set query')
+
+
 class Query:
     def __init__(self, connection, cls):
         self.connection = connection

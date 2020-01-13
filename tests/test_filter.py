@@ -202,3 +202,12 @@ def test_mix_relation_filter(fcl):
 def test_it_raises_an_error_on_unknown_attribute(fcl):
     with pytest.raises(AttributeError) as exc:
         assert fcl.Object1.relation1.Unknown == None
+
+
+def test_filter_does_not_prevent_chaining_with_query(fcl):
+    o = fcl.Object3
+    oneobj = o.query.filter(o.attribute1 == "o3a11").one()
+    assert isinstance(oneobj, o)
+
+    allobjs = o.query.all()
+    assert all([isinstance(obj, o) for obj in allobjs])

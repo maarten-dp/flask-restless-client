@@ -101,3 +101,11 @@ def test_query_does_not_set_attributs_as_dirty(fcl):
     o = fcl.Object3
     results = o.query.all()
     assert not any([res._dirty for res in results])
+
+
+def test_chaining_query_with_filter_does_not_have_side_effects(fcl):
+    o = fcl.Object1
+    objects = o.query.all()
+    assert len(objects) == 5
+    assert len(o.query.filter(o.attribute1 == "o1a11").all()) == 1
+    assert len(o.query.all()) == 5
