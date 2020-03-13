@@ -1,6 +1,7 @@
 import os
 import time
 from contextlib import contextmanager
+from datetime import date, datetime, timedelta
 from multiprocessing import Process
 
 import cereal_lazer
@@ -80,6 +81,20 @@ def fcl(filters):
 
 @pytest.fixture
 def mcl(app, session, instances):
+    db = app.db
+
+    class MisterTyper(db.Model):
+        __tablename__ = "mister_typer"
+        id = db.Column(db.Integer, primary_key=True)
+        date = db.Date()
+        dt = db.DateTime()
+        json = db.JSON()
+        interval = db.Interval()
+        binary = db.Binary()
+        num = db.Numeric()
+
+    db.create_all()
+
     class Apartment(instances.Formicarium):
         __mapper_args__ = {'polymorphic_identity': 'apartment'}
 
@@ -108,6 +123,19 @@ def mcl(app, session, instances):
 
         def function_with_uncommitted_object(self):
             return Apartment(name='Oof-Owie')
+
+        def function_with_new_obj(self):
+            mt = MisterTyper(
+                date=date(2018, 1, 1),
+                dt=datetime(2018, 1, 1),
+                json={"awe", "some"},
+                interval=timedelta(hours=2),
+                binary=b"this is nasty",
+                num=1000,
+            )
+            session.add(mt)
+            session.commit()
+            return mt
 
     Apartment.__tablename__ = 'apartment'
 
