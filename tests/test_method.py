@@ -41,3 +41,15 @@ def test_it_can_run_a_remote_method_returning_uncommitted_obj(mcl):
 
 def test_it_can_get_a_remote_property(mcl):
     assert mcl.Apartment.query.one().some_property == 'a_property_value'
+
+
+def test_it_can_get_a_remote_hybrid_property(mcl):
+    # Fill colonies of apt
+    colonies = mcl.AntColony.query.all()
+    apt = mcl.Apartment.query.one()
+    apt.colonies = colonies
+    apt.save()
+
+    # Refresh it
+    apt = mcl.Apartment.query.one()
+    assert apt.some_hybrid_property == apt.colonies
