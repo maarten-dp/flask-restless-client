@@ -11,6 +11,7 @@ from flask import Flask
 from flask_restless_datamodel import DataModel
 from flask_sqlalchemy import SQLAlchemy
 from requests_flask_adapter import Session
+from sqlalchemy.ext.hybrid import hybrid_property
 
 from restless_client import Client
 from restless_client.ext.auth import BaseSession
@@ -86,6 +87,10 @@ def mcl(app, session, instances):
         @property
         def some_property(self):
             return 'a_property_value'
+
+        @hybrid_property
+        def some_hybrid_property(self):
+            return self.colonies
 
         def function_without_params(self):
             return 5
