@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import date, datetime, timedelta
 
 from restless_client import types
@@ -63,7 +64,20 @@ def test_it_casts_attribute_types_correctly_when_not_marshalling_from_json(
 
 
 def test_it_can_execute_an_object_hook(mcl):
+    types.OBJECT_HOOKS = defaultdict(dict)
+
     @types.object_hook(mcl.Apartment.some_hybrid)
+    def hybrid_parser(value):
+        return mcl.AntCollection(**value)
+
+    apt = mcl.Apartment.query.one()
+    assert apt.some_hybrid.__class__ == mcl.AntCollection
+
+
+def test_it_can_execute_an_object_hook_defined_as_strings(mcl):
+    types.OBJECT_HOOKS = defaultdict(dict)
+
+    @types.object_hook('Apartment', 'some_hybrid')
     def hybrid_parser(value):
         return mcl.AntCollection(**value)
 

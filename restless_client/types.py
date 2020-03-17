@@ -47,10 +47,12 @@ register_type('json', json_caster)
 register_type('jsontype', json_caster)
 
 
-def object_hook(attr):
+def object_hook(model, attribute=None):
+    if not isinstance(model, str):
+        attribute = model.parent_attribute
+        model = model.parent_klass.__name__
+
     def outer_decorator(fn):
-        model = attr.parent_klass
-        attribute = attr.parent_attribute
         OBJECT_HOOKS[model][attribute] = fn
         return fn
 
@@ -58,8 +60,8 @@ def object_hook(attr):
 
 
 def object_hook_emit(model, attribute, value):
-    if model in OBJECT_HOOKS:
-        fn = OBJECT_HOOKS[model].get(attribute)
+    if model.__name__ in OBJECT_HOOKS:
+        fn = OBJECT_HOOKS[model.__name__].get(attribute)
         if fn:
             return fn(value)
     return value
