@@ -12,6 +12,7 @@ from flask import Flask
 from flask_restless_datamodel import DataModel
 from flask_sqlalchemy import SQLAlchemy
 from requests_flask_adapter import Session
+from sqlalchemy.ext.hybrid import hybrid_property
 
 from restless_client import Client
 from restless_client.ext.auth import BaseSession
@@ -41,6 +42,7 @@ def app():
     app = Flask(__name__)
     app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///:memory:"
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['PROPAGATE_EXCEPTIONS'] = True
     db = SQLAlchemy(app)
     app.db = db
     return app
@@ -86,12 +88,12 @@ def mcl(app, session, instances):
     class MisterTyper(db.Model):
         __tablename__ = "mister_typer"
         id = db.Column(db.Integer, primary_key=True)
-        date = db.Date()
-        dt = db.DateTime()
-        json = db.JSON()
-        interval = db.Interval()
-        binary = db.Binary()
-        num = db.Numeric()
+        date = db.Column(db.Date())
+        dt = db.Column(db.DateTime())
+        json = db.Column(db.JSON())
+        interval = db.Column(db.Interval())
+        binary = db.Column(db.Binary())
+        num = db.Column(db.Numeric())
 
     db.create_all()
 
@@ -101,6 +103,10 @@ def mcl(app, session, instances):
         @property
         def some_property(self):
             return 'a_property_value'
+
+        @hybrid_property
+        def some_hybrid(self):
+            return self.collection
 
         def function_without_params(self):
             return 5
@@ -128,10 +134,7 @@ def mcl(app, session, instances):
             mt = MisterTyper(
                 date=date(2018, 1, 1),
                 dt=datetime(2018, 1, 1),
-                json={"awe", "some"},
-                interval=timedelta(hours=2),
-                binary=b"this is nasty",
-                num=1000,
+                json={"awe": "some"},
             )
             session.add(mt)
             session.commit()
@@ -139,10 +142,13 @@ def mcl(app, session, instances):
 
     Apartment.__tablename__ = 'apartment'
 
-    session.add(Apartment(name='ApAntMent'))
+    apt = Apartment(name='ApAntMent')
+    apt.collection = instances.AntCollection.query.first()
+    session.add(apt)
     session.commit()
 
     app.manager.create_api(Apartment, methods=API_METHODS)
+    app.manager.create_api(MisterTyper, methods=API_METHODS)
 
     RaiseSession.register('http://app', app)
 
