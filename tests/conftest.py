@@ -1,6 +1,7 @@
 import os
 import time
 from contextlib import contextmanager
+from datetime import date, datetime, timedelta
 from multiprocessing import Process
 
 import cereal_lazer
@@ -11,6 +12,7 @@ from flask import Flask
 from flask_restless_datamodel import DataModel
 from flask_sqlalchemy import SQLAlchemy
 from requests_flask_adapter import Session
+from sqlalchemy.ext.hybrid import hybrid_property
 
 from restless_client import Client
 from restless_client.ext.auth import BaseSession
@@ -40,6 +42,7 @@ def app():
     app = Flask(__name__)
     app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///:memory:"
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['PROPAGATE_EXCEPTIONS'] = True
     db = SQLAlchemy(app)
     app.db = db
     return app
@@ -80,12 +83,30 @@ def fcl(filters):
 
 @pytest.fixture
 def mcl(app, session, instances):
+    db = app.db
+
+    class MisterTyper(db.Model):
+        __tablename__ = "mister_typer"
+        id = db.Column(db.Integer, primary_key=True)
+        date = db.Column(db.Date())
+        dt = db.Column(db.DateTime())
+        json = db.Column(db.JSON())
+        interval = db.Column(db.Interval())
+        binary = db.Column(db.Binary())
+        num = db.Column(db.Numeric())
+
+    db.create_all()
+
     class Apartment(instances.Formicarium):
         __mapper_args__ = {'polymorphic_identity': 'apartment'}
 
         @property
         def some_property(self):
             return 'a_property_value'
+
+        @hybrid_property
+        def some_hybrid(self):
+            return self.collection
 
         def function_without_params(self):
             return 5
@@ -109,12 +130,25 @@ def mcl(app, session, instances):
         def function_with_uncommitted_object(self):
             return Apartment(name='Oof-Owie')
 
+        def function_with_new_obj(self):
+            mt = MisterTyper(
+                date=date(2018, 1, 1),
+                dt=datetime(2018, 1, 1),
+                json={"awe": "some"},
+            )
+            session.add(mt)
+            session.commit()
+            return mt
+
     Apartment.__tablename__ = 'apartment'
 
-    session.add(Apartment(name='ApAntMent'))
+    apt = Apartment(name='ApAntMent')
+    apt.collection = instances.AntCollection.query.first()
+    session.add(apt)
     session.commit()
 
     app.manager.create_api(Apartment, methods=API_METHODS)
+    app.manager.create_api(MisterTyper, methods=API_METHODS)
 
     RaiseSession.register('http://app', app)
 

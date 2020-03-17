@@ -1,3 +1,8 @@
+from datetime import date, datetime, timedelta
+
+from restless_client import types
+
+
 def test_it_can_run_a_remote_method_without_params(mcl):
     res = mcl.Apartment.query.one().function_without_params()
     assert res == 5
@@ -41,3 +46,26 @@ def test_it_can_run_a_remote_method_returning_uncommitted_obj(mcl):
 
 def test_it_can_get_a_remote_property(mcl):
     assert mcl.Apartment.query.one().some_property == 'a_property_value'
+
+
+def test_it_casts_attribute_types_correctly_when_not_marshalling_from_json(
+        mcl):
+    apt = mcl.Apartment.query.one()
+    mt = apt.function_with_new_obj()
+
+    expected_types = {
+        "date": date,
+        "dt": datetime,
+        "json": dict,
+    }
+    for key, type_ in expected_types.items():
+        assert type(getattr(mt, key)) == type_
+
+
+def test_it_can_execute_an_object_hook(mcl):
+    @types.object_hook(mcl.Apartment.some_hybrid)
+    def hybrid_parser(value):
+        return mcl.AntCollection(**value)
+
+    apt = mcl.Apartment.query.one()
+    assert apt.some_hybrid.__class__ == mcl.AntCollection

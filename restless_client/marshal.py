@@ -4,6 +4,7 @@ from itertools import chain
 
 import crayons
 
+from .types import cast_type, object_hook_emit
 from .utils import State, pretty_logger
 
 logger = logging.getLogger('restless-client')
@@ -27,6 +28,12 @@ def log_loading(color):
         return execute
 
     return decorator
+
+
+def set_attr(obj, attr, value):
+    if value and value is not State.VOID:
+        value = object_hook_emit(obj.__class__, attr, value)
+    setattr(obj, attr, value)
 
 
 class ObjectSerializer:
@@ -82,7 +89,9 @@ class ObjectDeserializer:
         for field, field_type in obj._attrs.items():
             if field in raw:
                 log(obj, field, raw[field])
-                setattr(obj, field, raw[field])
+                value_type = obj._attrs.get(field)
+                value = cast_type(raw[field], value_type)
+                set_attr(obj, field, value)
 
     def handle_relations(self, obj, raw):
         relation_type_handlers = {
@@ -105,9 +114,9 @@ class ObjectDeserializer:
                     rel_obj = rel_model(**rel_obj)
                 with pretty_logger():
                     typed_list.append(rel_obj)
-            setattr(obj, field, typed_list)
+            set_attr(obj, field, typed_list)
         elif obj.is_new:
-            setattr(obj, field, typed_list)
+            set_attr(obj, field, typed_list)
 
     @log_loading('cyan')
     def handle_m2o(self, obj, field, val, rel_model):
@@ -115,7 +124,7 @@ class ObjectDeserializer:
             val = rel_model(**val)
         if hasattr(val.__class__, '__bases__'):
             if self.opts.BaseObject in val.__class__.__bases__:
-                setattr(obj, field, val)
+                set_attr(obj, field, val)
 
     @log_loading('magenta')
     def handle_o2o(self, obj, field, val, rel_model):

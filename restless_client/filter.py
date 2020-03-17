@@ -193,9 +193,10 @@ class Query:
 
     def one(self):
         self._query['single'] = True
-        return self.connection.load_query(self.cls,
-                                          single=True,
-                                          q=self._get_query())
+        kwargs = {'single': True}
+        if self._query:
+            kwargs['q'] = self._get_query()
+        return self.connection.load_query(self.cls, **kwargs)
 
     def one_or_none(self):
         try:
@@ -205,7 +206,10 @@ class Query:
                 raise e
 
     def all(self):  # noqa A003
-        return self.connection.load_query(self.cls, q=self._get_query())
+        kwargs = {}
+        if self._query:
+            kwargs['q'] = self._get_query()
+        return self.connection.load_query(self.cls, **kwargs)
 
     def get(self, oid):
         return self.connection.load(self.cls, oid)
