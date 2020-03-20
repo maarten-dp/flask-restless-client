@@ -1,7 +1,7 @@
 import logging
 import sys
-from itertools import chain
 from functools import partialmethod
+from itertools import chain
 
 import crayons
 from cereal_lazer import Cereal

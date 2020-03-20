@@ -3,9 +3,9 @@ from unittest.mock import Mock
 
 import pytest
 
+from restless_client.inspect import inspect
 from restless_client.marshal import ObjectDeserializer, ObjectSerializer
 from restless_client.models import BaseObject
-from restless_client.inspect import inspect
 
 
 class TypedList(list):
