@@ -4,6 +4,7 @@ import pytest
 
 from restless_client.connection import Connection
 from restless_client.filter import Query
+from restless_client.inspect import inspect
 
 
 class Meta:
@@ -33,7 +34,7 @@ class CollectionClass(list):
 @pytest.fixture
 def query(cl):
     cl.opts.CollectionClass = CollectionClass
-    BaseObject._rlc.client = cl
+    inspect(BaseObject).client = cl
     return Query(Connection(cl.opts.session, cl.opts), BaseObject)
 
 
@@ -112,7 +113,7 @@ def test_it_can_perform_a_get(query):
 def test_query_does_not_set_attributs_as_dirty(fcl):
     o = fcl.Object3
     results = o.query.all()
-    assert not any([res._rlc.dirty for res in results])
+    assert not any([inspect(res).dirty for res in results])
 
 
 def test_chaining_query_with_filter_does_not_have_side_effects(fcl):

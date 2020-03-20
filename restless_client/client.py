@@ -1,6 +1,7 @@
 import logging
 import sys
 from itertools import chain
+from functools import partialmethod
 
 import crayons
 from cereal_lazer import Cereal
@@ -18,12 +19,12 @@ from .utils import LoadingManager, RelationHelper, State, get_depth, urljoin
 
 def register_serializer(model):
     rlc = model._rlc
+    to_serialize = list(chain(rlc.attributes(), rlc.relations()))
 
     def load_model(value):
         return model(**value)
 
     def serialize_model(value):
-        to_serialize = list(chain(rlc.attributes(), rlc.relations()))
         return rlc.serializer._raw_serialize(value, to_serialize)
 
     rlc.client.cereal.register_class(rlc.class_name, model, serialize_model,
@@ -189,11 +190,7 @@ class ClassConstructor:
     def construct_method(self, method, method_details):
         method = self.opts.Method(method, method_details,
                                   self.client.connection)
-
-        def fn(self, *args, **kwargs):
-            return method(self, *args, **kwargs)
-
-        return fn
+        return partialmethod(method)
 
 
 class Client:

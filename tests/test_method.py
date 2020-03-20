@@ -2,6 +2,7 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta
 
 from restless_client import types
+from restless_client.inspect import inspect
 
 
 def test_it_can_run_a_remote_method_without_params(mcl):
@@ -42,7 +43,7 @@ def test_it_can_run_a_remote_method_returning_uncommitted_obj(mcl):
     res = mcl.Apartment.query.one().function_with_uncommitted_object()
     assert isinstance(res, mcl.Apartment)
     assert res.name == 'Oof-Owie'
-    assert not res._rlc.pk_val
+    assert not inspect(res).pk_val
 
 
 def test_it_can_get_a_remote_property(mcl):
