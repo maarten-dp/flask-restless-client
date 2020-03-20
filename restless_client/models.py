@@ -20,7 +20,7 @@ def get_class(cls, kwargs, meta):
 
 class BaseObject:
     def __init__(self, **kwargs):
-        oid = self.__pk_name
+        oid = self._rlc.pk_name
         super().__setattr__(oid,
                             kwargs[oid] if oid in kwargs else generate_id())
         self._rlc.deserializer.load(self, kwargs)
@@ -49,24 +49,6 @@ class BaseObject:
         self._rlc.relhelper.is_valid_instance(name, value)
         object.__setattr__(self, name, value)
 
-    @classmethod  # noqa A003
-    def all(cls):
-        # shorthand for Class.query.all()
-        return cls.query.all()
-
-    @classmethod
-    def get(cls, oid):
-        # shorthand for Class.query.get()
-        return cls.query.get(oid)
-
-    @property
-    def __pk_val(self):
-        return getattr(self, self._rlc.pk_name)
-
-    @property
-    def __pk_name(self):
-        return self._rlc.pk_name
-
     def delete(self):
         self._rlc.connection.delete(self)
 
@@ -83,7 +65,7 @@ class BaseObject:
         return str(self)
 
     def __str__(self):
-        attributes = ["{}: {}".format(self.__pk_name, self.__pk_val)]
+        attributes = ["{}: {}".format(self._rlc.pk_name, self._rlc.pk_val)]
         if hasattr(self, 'name'):
             attributes.append("name: {}".format(self.name))
         return "<{} [{}]>".format(self.__class__.__name__,

@@ -32,7 +32,7 @@ def test_it_can_run_a_remote_method_with_default_params(mcl):
 
 
 def test_it_can_run_a_remote_method_with_an_object_as_param(mcl):
-    colony = mcl.AntColony.get(1)
+    colony = mcl.AntColony.query.get(1)
     res = mcl.Apartment.query.one().function_with_an_object(colony)
     assert isinstance(res, mcl.AntColony)
     assert res.name == colony.name

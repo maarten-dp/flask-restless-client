@@ -4,7 +4,7 @@ from restless_client import inspect
 
 
 def test_it_can_load_an_object(cl):
-    colony = cl.AntColony.get(1)
+    colony = cl.AntColony.query.get(1)
     assert colony.name == 'Argentine Ant'
 
 
@@ -14,7 +14,7 @@ def test_it_can_load_a_simple_filter(cl):
 
 
 def test_it_cant_set_an_unexisting_attribute(cl):
-    colony = cl.AntColony.get(1)
+    colony = cl.AntColony.query.get(1)
     with pytest.raises(AttributeError):
         colony.unknown = 'Argentine Ant'
 
@@ -50,7 +50,7 @@ def test_it_can_load_an_inherited_object(cl):
 
 
 def test_it_correctly_loads_inherited_objects(cl):
-    formicaria = cl.Formicarium.all()
+    formicaria = cl.Formicarium.query.all()
     classes = set([inspect(f).class_name for f in formicaria])
     assert set(['SandwichFormicarium', 'FreeStandingFormicarium']) == classes
 
@@ -66,7 +66,7 @@ def test_it_can_save_an_inherited_object(cl):
         name="PlAnts",
         height=10,
         width=10,
-        collection=cl.AntCollection.get(1),
+        collection=cl.AntCollection.query.get(1),
     )
     formicarium.save()
     assert formicarium.id == 6
@@ -117,7 +117,7 @@ def test_it_can_save_an_object_when_appending_unsaved_objects_as_relation(cl):
 
 def test_it_can_update_an_object(cl, app):
     new_name = "ElephAnt"
-    collection = cl.AntCollection.get(1)
+    collection = cl.AntCollection.query.get(1)
     collection.name = new_name
     collection.save()
     assert app.AntCollection.query.get(1).name == new_name
@@ -125,19 +125,19 @@ def test_it_can_update_an_object(cl, app):
 
 def test_it_can_update_an_object_when_removing_and_object_from_relations(
         cl, app):
-    formicarium = cl.Formicarium.get(1)
+    formicarium = cl.Formicarium.query.get(1)
     formicarium.colonies.remove(formicarium.colonies[0])
     formicarium.save()
     assert app.Formicarium.query.get(1).colonies == []
 
 
 def test_it_can_delete_an_object(cl, app):
-    cl.AntColony.get(1).delete()
+    cl.AntColony.query.get(1).delete()
     assert app.AntColony.query.get(1) is None
 
 
 def test_it_can_access_a_level_two_relation(cl):
-    colony = cl.AntColony.get(1)
+    colony = cl.AntColony.query.get(1)
     collection = colony.formicarium.collection
     assert collection.name == 'Antopia'
 
