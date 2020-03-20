@@ -3,25 +3,35 @@ from unittest import mock
 import pytest
 
 from restless_client.filter import ComparisonResult
+from restless_client.inspect import InstanceState, ModelMeta
 from restless_client.property import FilterNode, LoadableProperty
 
 
 @pytest.fixture
 def Stub():
-    client = mock.Mock(is_loading=False)
+    client = mock.Mock(is_loading=False, connection=mock.Mock())
 
     class StubClass:
         _relations = {}
+        oid = 1
         attribute1 = LoadableProperty('attribute1')
+        _rlc = ModelMeta(client=client,
+                         relations=[],
+                         pk_name='oid',
+                         class_name=None,
+                         attributes=None,
+                         properties=None,
+                         methods=None,
+                         base_url=None,
+                         method_url=None,
+                         polymorphic=None,
+                         relhelper=None)
 
         def __init__(self, **kwargs):
-            self._pkval = 1
-            self._dirty = kwargs.get('dirty', set())
-            self._values = kwargs.get('values', {})
-            self._relations = kwargs.get('relations', [])
-            self._connection = mock.Mock()
-            self._client = kwargs.get('client', client)
-            self.is_new = kwargs.get('is_new', False)
+            self._rlc.client = kwargs.get('client', client)
+            self._rlc = InstanceState(self)
+            self._rlc.dirty = kwargs.get('dirty', set())
+            self._rlc.values = kwargs.get('values', {})
 
     return StubClass
 
@@ -36,26 +46,26 @@ def test_it_can_set_an_attribute(Stub):
 def test_it_can_load_an_attribute(Stub):
     stub = Stub()
     assert stub.attribute1 == None
-    stub._connection.load.assert_called_once()
+    stub._rlc.connection.load.assert_called_once()
 
 
 def test_it_can_return_loaded_values(Stub):
     stub = Stub()
-    stub._values['attribute1'] = 'test'
+    stub._rlc.values['attribute1'] = 'test'
     assert stub.attribute1 == 'test'
 
 
 def test_it_flags_attribute_as_dirty_when_set(Stub):
     stub = Stub()
     stub.attribute1 = 'test'
-    assert 'attribute1' in stub._dirty
+    assert 'attribute1' in stub._rlc.dirty
 
 
 def test_it_does_not_update_when_dirty_and_loading(Stub):
     client = mock.Mock(is_loading=True)
     stub = Stub(client=client)
-    stub._dirty.add('attribute1')
-    stub._values['attribute1'] = 'test'
+    stub._rlc.dirty.add('attribute1')
+    stub._rlc.values['attribute1'] = 'test'
     stub.attribute1 = 'not test'
     assert stub.attribute1 == 'test'
 
@@ -67,7 +77,7 @@ def test_it_returns_a_filter_as_class_attribute(Stub):
 def test_is_returns_relation_property(Stub):
     client = mock.Mock(_classes={'SOMEMODEL': 'SOMEMODEL'})
     Stub._client = client
-    Stub._relations = {
+    Stub._rlc.relations = {
         'attribute1': {
             'relation_type': 'WHOTOCARES',
             'foreign_model': 'SOMEMODEL'

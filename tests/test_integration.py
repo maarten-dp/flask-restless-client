@@ -1,5 +1,7 @@
 import pytest
 
+from restless_client import inspect
+
 
 def test_it_can_load_an_object(cl):
     colony = cl.AntColony.get(1)
@@ -35,9 +37,9 @@ def test_it_can_init_a_polymorphed_class_correcly(cl):
     expected = [
         'id', 'name', 'formicarium_type', 'width', 'collection_id', 'height'
     ]
-    assert formicarium.attributes() == expected
+    assert inspect(formicarium).attributes() == expected
     expected = ['collection', 'colonies']
-    assert formicarium.relations() == expected
+    assert inspect(formicarium).relations() == expected
     assert formicarium.height == 10
 
 
@@ -49,7 +51,7 @@ def test_it_can_load_an_inherited_object(cl):
 
 def test_it_correctly_loads_inherited_objects(cl):
     formicaria = cl.Formicarium.all()
-    classes = set([f._class_name for f in formicaria])
+    classes = set([inspect(f).class_name for f in formicaria])
     assert set(['SandwichFormicarium', 'FreeStandingFormicarium']) == classes
 
 
