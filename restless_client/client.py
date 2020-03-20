@@ -1,6 +1,5 @@
 import logging
 import sys
-from functools import partialmethod
 from itertools import chain
 
 import crayons
@@ -12,6 +11,7 @@ from .ext.auth import Session
 from .filter import QueryFactory
 from .inspect import ModelMeta
 from .marshal import ObjectDeserializer, ObjectSerializer
+from .method import Method, construct_method
 from .models import BaseObject
 from .property import LoadableProperty
 from .utils import LoadingManager, RelationHelper, State, get_depth, urljoin
@@ -88,42 +88,6 @@ class Options:
             self.session = Session(auth_url, **opts)
 
 
-class Method:
-    def __init__(self, name, details, connection):
-        self.name = name
-        self.connection = connection
-        self.args = details['args']
-        self.kwargs = details['kwargs']
-        self.argsvar = details['argsvar']
-        self.kwargsvar = details['kwargsvar']
-
-    def __call__(self, obj, *args, **kwargs):
-        self.validate_params(args, kwargs)
-        rlc = obj._rlc
-        url = '{}/{}/{}'.format(rlc.method_url, rlc.pk_val, self.name)
-        payload = {'payload': self.serialize_params(args, kwargs)}
-        result = self.connection.request(url, http_method='post', json=payload)
-        result = self.cereal.loads(result['payload'])
-        return result
-
-    @property
-    def cereal(self):
-        return self.connection.client.cereal
-
-    def serialize_params(self, args, kwargs):
-        return self.cereal.dumps({'args': args, 'kwargs': kwargs})
-
-    def validate_params(self, args, kwargs):
-        if not self.argsvar and len(args) < len(self.args):
-            msg = '{}() missing {} required positional argument: {}'
-            diff = self.args[len(args):]
-            TypeError(msg.format(self.name, len(diff), ', '.join(diff)))
-        kwdiff = set(self.kwargs).difference(kwargs.keys())
-        if not self.kwargsvar and kwdiff:
-            msg = "{}() got an unexpected keyword argument '{}'"
-            TypeError(msg.format(self.name, kwdiff.pop()))
-
-
 class ServerProperty:
     def __init__(self, attribute, connection, base_url):
         self.attribute = attribute
@@ -175,7 +139,8 @@ class ClassConstructor:
                 field, self.client.connection, self.client.model_url)
 
         for method, method_details in details['methods'].items():
-            attributes[method] = self.construct_method(method, method_details)
+            attributes[method] = construct_method(self.opts, self.client,
+                                                  method, method_details)
 
         inherits = [self.opts.BaseObject]
         if details.get('polymorphic', {}).get('parent'):
@@ -186,11 +151,6 @@ class ClassConstructor:
         self.client._classes[name] = klass
         setattr(self.client, name, klass)
         register_serializer(klass)
-
-    def construct_method(self, method, method_details):
-        method = self.opts.Method(method, method_details,
-                                  self.client.connection)
-        return partialmethod(method)
 
 
 class Client:
