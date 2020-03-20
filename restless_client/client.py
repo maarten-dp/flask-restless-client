@@ -244,10 +244,13 @@ class Client:
     def _register(self, obj):
         self.registry['%s%s' % (obj.__class__.__name__, obj._rlc.pk_val)] = obj
 
+    def delete(self, instance):
+        instance._rlc.delete()
+
     def save(self, instance=None):
         if instance is None:
             for obj in self.registry.values():
                 if obj._rlc.dirty:
-                    obj.save()
+                    obj._rlc.save()
         else:
-            instance.save()
+            instance._rlc.save()

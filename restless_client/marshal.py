@@ -66,7 +66,7 @@ class ObjectSerializer:
     def clean(self, attr, value, autosave):
         if isinstance(value, self.opts.BaseObject):
             if value._rlc.is_new and autosave:
-                value.save()
+                value._rlc.save()
             value = {value._rlc.pk_name: value._rlc.pk_val}
         if isinstance(value, (date, datetime)):
             value = value.isoformat()

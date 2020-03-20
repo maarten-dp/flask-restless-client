@@ -57,7 +57,7 @@ def test_it_correctly_loads_inherited_objects(cl):
 
 def test_it_can_save_an_object(cl):
     collection = cl.AntCollection(name="Antiquities", location="The Past")
-    collection.save()
+    cl.save(collection)
     assert collection.id == 4
 
 
@@ -68,7 +68,7 @@ def test_it_can_save_an_inherited_object(cl):
         width=10,
         collection=cl.AntCollection.query.get(1),
     )
-    formicarium.save()
+    cl.save(formicarium)
     assert formicarium.id == 6
 
 
@@ -80,7 +80,7 @@ def test_it_can_save_an_object_with_an_unsaved_object_as_relation(cl):
         width=10,
         collection=collection,
     )
-    formicarium.save()
+    cl.save(formicarium)
     assert collection.id == 4
     assert formicarium.id == 6
 
@@ -94,7 +94,7 @@ def test_it_can_save_an_object_with_unsaved_objects_as_relation(cl):
     collection = cl.AntCollection(name="Antiquities",
                                   location="The Past",
                                   formicaria=[formicarium])
-    collection.save()
+    cl.save(collection)
     assert collection.id == 4
     assert formicarium.id == 6
 
@@ -110,7 +110,7 @@ def test_it_can_save_an_object_when_appending_unsaved_objects_as_relation(cl):
         location="The Past",
     )
     collection.formicaria.append(formicarium)
-    collection.save()
+    cl.save(collection)
     assert collection.id == 4
     assert formicarium.id == 6
 
@@ -119,7 +119,7 @@ def test_it_can_update_an_object(cl, app):
     new_name = "ElephAnt"
     collection = cl.AntCollection.query.get(1)
     collection.name = new_name
-    collection.save()
+    cl.save(collection)
     assert app.AntCollection.query.get(1).name == new_name
 
 
@@ -127,12 +127,12 @@ def test_it_can_update_an_object_when_removing_and_object_from_relations(
         cl, app):
     formicarium = cl.Formicarium.query.get(1)
     formicarium.colonies.remove(formicarium.colonies[0])
-    formicarium.save()
+    cl.save(formicarium)
     assert app.Formicarium.query.get(1).colonies == []
 
 
 def test_it_can_delete_an_object(cl, app):
-    cl.AntColony.query.get(1).delete()
+    cl.delete(cl.AntColony.query.get(1))
     assert app.AntColony.query.get(1) is None
 
 

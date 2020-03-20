@@ -49,18 +49,6 @@ class BaseObject:
         self._rlc.relhelper.is_valid_instance(name, value)
         object.__setattr__(self, name, value)
 
-    def delete(self):
-        self._rlc.connection.delete(self)
-
-    def save(self):
-        if self._rlc.is_new:
-            self._rlc.connection.create(self)
-        elif self._rlc.dirty:
-            self._rlc.connection.update(self)
-        else:
-            logger.debug("No action needed")
-        self._rlc.dirty = set()
-
     def __repr__(self):
         return str(self)
 

@@ -1,4 +1,7 @@
 import inspect as p_inspect
+import logging
+
+logger = logging.getLogger('restless-client')
 
 
 class ModelMeta:
@@ -54,6 +57,18 @@ class InstanceState:
     @property
     def is_new(self):
         return str(self.pk_val).startswith('C')
+
+    def delete(self):
+        self.connection.delete(self.instance)
+
+    def save(self):
+        if self.is_new:
+            self.connection.create(self.instance)
+        elif self.dirty:
+            self.connection.update(self.instance)
+        else:
+            logger.debug("No action needed")
+        self.dirty = set()
 
 
 def inspect(obj):
