@@ -16,6 +16,7 @@ def get_class(cls, kwargs, meta):
     for discriminator, kls in meta.polymorphic['identities'].items():
         if kwargs.get(discriminator_name) == discriminator:
             return meta.client._classes[kls]
+    return cls
 
 
 class BaseObject:
