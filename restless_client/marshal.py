@@ -42,32 +42,32 @@ class ObjectSerializer:
         self.opts = opts
 
     def serialize(self, obj):
-        to_serialize = list(chain(obj.attributes(), obj.relations()))
+        to_serialize = list(chain(obj._rlc.attributes(), obj._rlc.relations()))
         return self._serialize(obj, to_serialize)
 
     def serialize_dirty(self, obj):
-        return self._serialize(obj, obj._dirty, autosave=True)
+        return self._serialize(obj, obj._rlc.dirty, autosave=True)
 
     def _serialize(self, obj, to_serialize, autosave=False):
         # create attribute dict
-        if obj._pk_name in to_serialize:
-            to_serialize.remove(obj._pk_name)
+        if obj._rlc.pk_name in to_serialize:
+            to_serialize.remove(obj._rlc.pk_name)
         return self._raw_serialize(obj, to_serialize, autosave)
 
     def _raw_serialize(self, obj, to_serialize, autosave=False):
         object_dict = {}
         for attr in to_serialize:
-            if attr not in obj._values:
+            if attr not in obj._rlc.values:
                 continue
-            value = obj._values[attr]
+            value = obj._rlc.values[attr]
             object_dict[attr] = self.clean(attr, value, autosave)
         return object_dict
 
     def clean(self, attr, value, autosave):
         if isinstance(value, self.opts.BaseObject):
-            if value.is_new and autosave:
-                value.save()
-            value = {value._pk_name: value._pkval}
+            if value._rlc.is_new and autosave:
+                value._rlc.save()
+            value = {value._rlc.pk_name: value._rlc.pk_val}
         if isinstance(value, (date, datetime)):
             value = value.isoformat()
         if isinstance(value, (list, set, tuple)):
@@ -86,10 +86,11 @@ class ObjectDeserializer:
             self.handle_relations(obj, attributes_dict)
 
     def handle_attributes(self, obj, raw):
-        for field, field_type in obj._attrs.items():
+        attrs = obj._rlc._attributes
+        for field, field_type in attrs.items():
             if field in raw:
                 log(obj, field, raw[field])
-                value_type = obj._attrs.get(field)
+                value_type = attrs.get(field)
                 value = cast_type(raw[field], value_type)
                 set_attr(obj, field, value)
 
@@ -100,10 +101,10 @@ class ObjectDeserializer:
             'ONETOONE': self.handle_o2o,
             'MANYTOMANY': self.handle_o2m,
         }
-        for field in obj._relations.keys():
+        for field in obj._rlc._relations.keys():
             val = raw.get(field, State.VOID)
-            handler = relation_type_handlers[obj._relhelper.type(field)]
-            handler(obj, field, val, obj._relhelper.model(field))
+            handler = relation_type_handlers[obj._rlc.relhelper.type(field)]
+            handler(obj, field, val, obj._rlc.relhelper.model(field))
 
     @log_loading('blue')
     def handle_o2m(self, obj, field, val, rel_model):
@@ -115,7 +116,7 @@ class ObjectDeserializer:
                 with pretty_logger():
                     typed_list.append(rel_obj)
             set_attr(obj, field, typed_list)
-        elif obj.is_new:
+        elif obj._rlc.is_new:
             set_attr(obj, field, typed_list)
 
     @log_loading('cyan')

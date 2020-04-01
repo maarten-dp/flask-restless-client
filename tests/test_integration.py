@@ -1,8 +1,10 @@
 import pytest
 
+from restless_client import inspect
+
 
 def test_it_can_load_an_object(cl):
-    colony = cl.AntColony.get(1)
+    colony = cl.AntColony.query.get(1)
     assert colony.name == 'Argentine Ant'
 
 
@@ -12,7 +14,7 @@ def test_it_can_load_a_simple_filter(cl):
 
 
 def test_it_cant_set_an_unexisting_attribute(cl):
-    colony = cl.AntColony.get(1)
+    colony = cl.AntColony.query.get(1)
     with pytest.raises(AttributeError):
         colony.unknown = 'Argentine Ant'
 
@@ -35,9 +37,9 @@ def test_it_can_init_a_polymorphed_class_correcly(cl):
     expected = [
         'id', 'name', 'formicarium_type', 'width', 'collection_id', 'height'
     ]
-    assert formicarium.attributes() == expected
+    assert inspect(formicarium).attributes() == expected
     expected = ['collection', 'colonies']
-    assert formicarium.relations() == expected
+    assert inspect(formicarium).relations() == expected
     assert formicarium.height == 10
 
 
@@ -48,14 +50,14 @@ def test_it_can_load_an_inherited_object(cl):
 
 
 def test_it_correctly_loads_inherited_objects(cl):
-    formicaria = cl.Formicarium.all()
-    classes = set([f._class_name for f in formicaria])
+    formicaria = cl.Formicarium.query.all()
+    classes = set([inspect(f).class_name for f in formicaria])
     assert set(['SandwichFormicarium', 'FreeStandingFormicarium']) == classes
 
 
 def test_it_can_save_an_object(cl):
     collection = cl.AntCollection(name="Antiquities", location="The Past")
-    collection.save()
+    cl.save(collection)
     assert collection.id == 4
 
 
@@ -64,9 +66,9 @@ def test_it_can_save_an_inherited_object(cl):
         name="PlAnts",
         height=10,
         width=10,
-        collection=cl.AntCollection.get(1),
+        collection=cl.AntCollection.query.get(1),
     )
-    formicarium.save()
+    cl.save(formicarium)
     assert formicarium.id == 6
 
 
@@ -78,7 +80,7 @@ def test_it_can_save_an_object_with_an_unsaved_object_as_relation(cl):
         width=10,
         collection=collection,
     )
-    formicarium.save()
+    cl.save(formicarium)
     assert collection.id == 4
     assert formicarium.id == 6
 
@@ -92,7 +94,7 @@ def test_it_can_save_an_object_with_unsaved_objects_as_relation(cl):
     collection = cl.AntCollection(name="Antiquities",
                                   location="The Past",
                                   formicaria=[formicarium])
-    collection.save()
+    cl.save(collection)
     assert collection.id == 4
     assert formicarium.id == 6
 
@@ -108,34 +110,34 @@ def test_it_can_save_an_object_when_appending_unsaved_objects_as_relation(cl):
         location="The Past",
     )
     collection.formicaria.append(formicarium)
-    collection.save()
+    cl.save(collection)
     assert collection.id == 4
     assert formicarium.id == 6
 
 
 def test_it_can_update_an_object(cl, app):
     new_name = "ElephAnt"
-    collection = cl.AntCollection.get(1)
+    collection = cl.AntCollection.query.get(1)
     collection.name = new_name
-    collection.save()
+    cl.save(collection)
     assert app.AntCollection.query.get(1).name == new_name
 
 
 def test_it_can_update_an_object_when_removing_and_object_from_relations(
         cl, app):
-    formicarium = cl.Formicarium.get(1)
+    formicarium = cl.Formicarium.query.get(1)
     formicarium.colonies.remove(formicarium.colonies[0])
-    formicarium.save()
+    cl.save(formicarium)
     assert app.Formicarium.query.get(1).colonies == []
 
 
 def test_it_can_delete_an_object(cl, app):
-    cl.AntColony.get(1).delete()
+    cl.delete(cl.AntColony.query.get(1))
     assert app.AntColony.query.get(1) is None
 
 
 def test_it_can_access_a_level_two_relation(cl):
-    colony = cl.AntColony.get(1)
+    colony = cl.AntColony.query.get(1)
     collection = colony.formicarium.collection
     assert collection.name == 'Antopia'
 

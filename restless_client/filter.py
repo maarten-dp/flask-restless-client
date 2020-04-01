@@ -1,6 +1,8 @@
 import json
 import logging
 
+from .inspect import inspect
+
 logger = logging.getLogger('restless-client')
 
 INVERT_OPERATORS = [('==', '!='), ('>', '<='), ('<', '>='), ('>=', '<'),
@@ -183,12 +185,12 @@ class Query:
 
     def first(self):
         self.limit(1)
-        self.order_by(**{self.cls._pk_name: 'asc'})
+        self.order_by(**{self.cls._rlc.pk_name: 'asc'})
         return self.one()
 
     def last(self):
         self.limit(1)
-        self.order_by(**{self.cls._pk_name: 'desc'})
+        self.order_by(**{self.cls._rlc.pk_name: 'desc'})
         return self.one()
 
     def one(self):
@@ -212,6 +214,10 @@ class Query:
         return self.connection.load_query(self.cls, **kwargs)
 
     def get(self, oid):
+        registry_id = '{}{}'.format(self.cls.__name__, oid)
+        meta = inspect(self.cls)
+        if registry_id in meta.client.registry:
+            return meta.client.registry[registry_id]
         return self.connection.load(self.cls, oid)
 
     def _get_query(self):

@@ -1,12 +1,25 @@
+from collections import namedtuple
+
 import pytest
 
 from restless_client.connection import Connection
 from restless_client.filter import Query
+from restless_client.inspect import inspect
+
+
+class Meta:
+    def __init__(self, base_url, pk_name, client):
+        self.base_url = base_url
+        self.pk_name = pk_name
+        self.client = client
 
 
 class BaseObject:
-    _base_url = "http://app/api/formicarium"
-    _pk_name = "id"
+    _rlc = Meta(
+        base_url="http://app/api/formicarium",
+        pk_name="id",
+        client=None,
+    )
 
     def __init__(self, **kwargs):
         for key, value in kwargs.items():
@@ -21,7 +34,7 @@ class CollectionClass(list):
 @pytest.fixture
 def query(cl):
     cl.opts.CollectionClass = CollectionClass
-    BaseObject._client = cl
+    inspect(BaseObject).client = cl
     return Query(Connection(cl.opts.session, cl.opts), BaseObject)
 
 
@@ -100,7 +113,7 @@ def test_it_can_perform_a_get(query):
 def test_query_does_not_set_attributs_as_dirty(fcl):
     o = fcl.Object3
     results = o.query.all()
-    assert not any([res._dirty for res in results])
+    assert not any([inspect(res).dirty for res in results])
 
 
 def test_chaining_query_with_filter_does_not_have_side_effects(fcl):

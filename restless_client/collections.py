@@ -10,8 +10,8 @@ def update_backref(remove):
         def decorator(self, *args, **kwargs):
             res = fn(self, *args, **kwargs)
             item = res or args[0]
-            if not self.parent._client.is_loading:
-                self.parent._dirty.add(self.for_attr)
+            if not self.parent._rlc.client.is_loading:
+                self.parent._rlc.dirty.add(self.for_attr)
             if self.for_attr:
                 self._update_backref(item, self.for_attr, remove=remove)
             return res
@@ -48,18 +48,18 @@ class TypedList(list):
         return list.pop(self)
 
     def _update_backref(self, item, attr, remove=False):
-        relhelper = self.parent._relhelper
+        relhelper = self.parent._rlc.relhelper
         backref = relhelper.backref(attr)
         if backref:
             msg = 'Updating {} backref {}.{}'.format(
-                item._relhelper.type(backref), item, backref)
-            if item._relhelper.is_scalar(backref):
+                item._rlc.relhelper.type(backref), item, backref)
+            if item._rlc.relhelper.is_scalar(backref):
                 value = None if remove else self.parent
                 logger.debug(msg)
-                with self.parent._client.loading:
+                with self.parent._rlc.client.loading:
                     setattr(item, backref, value)
             else:
-                if backref in item._values:
+                if backref in item._rlc.values:
                     fn = list.remove if remove else list.append
                     lst = getattr(item, backref)
                     if (self.parent not in lst) ^ remove:
@@ -71,7 +71,7 @@ class TypedList(list):
 class ObjectCollection(list):
     def __init__(self, object_class, lst=None, attrs=None):
         self.object_class = object_class
-        self.attrs = attrs or object_class.attributes()
+        self.attrs = attrs or object_class._rlc.attributes()
         if lst:
             self.extend(lst)
 
