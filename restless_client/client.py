@@ -91,7 +91,8 @@ class Options:
         if 'session' in opts:
             self.session = opts.pop('session')
         else:
-            auth_url = opts.pop('auth_url', urljoin(opts['base_url'], 'auth'))
+            auth_url = opts.pop('auth_url',
+                                urljoin(opts['base_url'], 'api/auth'))
             self.session = Session(auth_url, **opts)
 
 
