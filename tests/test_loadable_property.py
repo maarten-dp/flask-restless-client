@@ -24,6 +24,7 @@ def Stub():
                          methods=None,
                          base_url=None,
                          method_url=None,
+                         property_url=None,
                          polymorphic=None,
                          relhelper=None)
 

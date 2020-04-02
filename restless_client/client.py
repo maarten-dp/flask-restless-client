@@ -1,5 +1,6 @@
 import logging
 import sys
+from collections import defaultdict
 from itertools import chain
 
 import crayons
@@ -14,7 +15,12 @@ from .marshal import ObjectDeserializer, ObjectSerializer
 from .method import Method, construct_method
 from .models import BaseObject
 from .property import LoadableProperty
+from .utils import check_server_compatibility  # noqa
 from .utils import LoadingManager, RelationHelper, State, get_depth, urljoin
+
+
+class UncallableProperty(Exception):
+    pass
 
 
 def register_serializer(model):
@@ -73,12 +79,13 @@ class Options:
 
         self.debug = opts.pop('debug', True)
         self.data_model_endpoint = opts.pop('data_model_endpoint',
-                                            'flask-restless-datamodel')
+                                            'api/flask-restless-datamodel')
 
         # cereal lazer options
         # will return the raw data instead of raising an error when loading
         self.raise_load_errors = opts.pop('raise_load_errors', True)
         # will try to coerce non registered classes into an emulated object
+        self._serialize_naively_set_by_user = 'serialize_naively' in opts
         self.serialize_naively = opts.pop('serialize_naively', False)
 
         if 'session' in opts:
@@ -89,25 +96,50 @@ class Options:
 
 
 class ServerProperty:
-    def __init__(self, attribute, connection, base_url):
+    def __init__(self, attribute, connection):
         self.attribute = attribute
         self.connection = connection
-        self.url = '{}/property'.format(base_url)
 
     def __get__(self, obj, objtype=None):
         if objtype and obj is None:
             return self
-        content = {'object': obj, 'property': self.attribute}
-        payload = {'payload': self.cereal.dumps(content)}
-        result = self.connection.request(self.url,
-                                         http_method='post',
-                                         json=payload)
-        result = self.cereal.loads(result['payload'])
-        return result
+
+        if obj._rlc.is_new:
+            raise UncallableProperty("Cannot call properties on new objects.")
+
+        url = self.get_url(obj)
+        result = self.connection.request(url, http_method='get')
+        return self.cereal.loads(result['payload'])
+
+    def get_url(self, obj):
+        rlc = obj._rlc
+        return '{}/{}/{}'.format(rlc.property_url, rlc.pk_val, self.attribute)
 
     @property
     def cereal(self):
         return self.connection.client.cereal
+
+
+class SettableServerProperty(ServerProperty):
+    def __init__(self, attribute, connection):
+        super().__init__(attribute, connection)
+        self.value = defaultdict(lambda: State.VOID)
+
+    def __get__(self, obj, objtype=None):
+        if self.value[obj] == State.VOID:
+            return super().__get__(obj, objtype)
+        return self.value[obj]
+
+    def __set__(self, obj, value):
+        self.value[obj] = value
+        obj._rlc.dirty.add(self.attribute)
+
+    def _commit(self, obj):
+        if self.value[obj] == State.VOID:
+            return
+        url = self.get_url(obj)
+        payload = self.cereal.dumps(self.value[obj])
+        self.connection.request(url, http_method='post', json=payload)
 
 
 class ClassConstructor:
@@ -116,31 +148,38 @@ class ClassConstructor:
         self.opts = opts
 
     def construct_class(self, name, details):
-        meta = ModelMeta(client=self.client,
-                         class_name=name,
-                         pk_name=details['pk_name'],
-                         attributes=details['attributes'],
-                         properties=details['properties'],
-                         relations=details['relations'],
-                         methods=details['methods'].keys(),
-                         base_url=urljoin(self.client.model_url,
-                                          details['collection_name']),
-                         method_url=urljoin(self.client.model_url, 'method',
-                                            name.lower()),
-                         polymorphic=details.get('polymorphic', {}),
-                         relhelper=self.opts.RelationHelper(
-                             self.client, self.opts, details['relations']))
+        base_url = urljoin(
+            self.client.base_url,
+            details['url_prefix'],
+        )
+
+        meta = ModelMeta(
+            client=self.client,
+            class_name=name,
+            pk_name=details['pk_name'],
+            attributes=details['attributes'],
+            properties=details['properties'],
+            relations=details['relations'],
+            methods=details['methods'].keys(),
+            base_url=urljoin(base_url, details['collection_name']),
+            method_url=urljoin(base_url, 'method', name.lower()),
+            property_url=urljoin(base_url, 'property', name.lower()),
+            polymorphic=details.get('polymorphic', {}),
+            relhelper=self.opts.RelationHelper(self.client, self.opts,
+                                               details['relations']))
         attributes = {'_rlc': meta}
         for field in chain(details['attributes'], details['relations']):
             attributes[field] = self.opts.LoadableProperty(field)
 
-        for field in details['properties']:
-            attributes[field] = self.opts.ServerProperty(
-                field, self.client.connection, self.client.model_url)
+        if self.opts.ServerProperty:
+            for field, url in details['properties'].items():
+                attributes[field] = self.opts.ServerProperty(
+                    field, self.client.connection)
 
-        for method, method_details in details['methods'].items():
-            attributes[method] = construct_method(self.opts, self.client,
-                                                  method, method_details)
+        if self.opts.Method:
+            for method, method_details in details['methods'].items():
+                attributes[method] = construct_method(self.opts, self.client,
+                                                      method, method_details)
 
         inherits = [self.opts.BaseObject]
         if details.get('polymorphic', {}).get('parent'):
@@ -157,9 +196,6 @@ class Client:
     def __init__(self, url, **kwargs):
         self.base_url = url
         self.state = State.LOADABLE
-        self.model_url = kwargs.pop('model_root', url)
-        if 'http' not in self.model_url:
-            self.model_url = urljoin(url, self.model_url)
 
         self.registry = {}
         self._classes = {}
@@ -181,6 +217,10 @@ class Client:
     def initialize(self):
         url = urljoin(self.base_url, self.opts.data_model_endpoint)
         res = self.connection.request(url)
+        meta = res.pop('FlaskRestlessDatamodel', {})
+        check_server_compatibility(meta.get('server_version'))
+        if not self.opts._serialize_naively_set_by_user:
+            self.cereal.serialize_naively = meta['serialize_naively']
         delayed = {}
         for name, details in res.items():
             if details.get('polymorphic', {}).get('parent'):

@@ -1,18 +1,20 @@
 import inspect as p_inspect
 import logging
+from itertools import chain
 
 logger = logging.getLogger('restless-client')
 
 
 class ModelMeta:
     def __init__(self, client, class_name, pk_name, attributes, properties,
-                 relations, methods, base_url, method_url, polymorphic,
-                 relhelper):
+                 relations, methods, base_url, method_url, property_url,
+                 polymorphic, relhelper):
         self.client = client
         self.connection = client.connection
 
         self.base_url = base_url
         self.method_url = method_url
+        self.property_url = property_url
 
         self.class_name = class_name
         self.pk_name = pk_name
@@ -57,6 +59,19 @@ class InstanceState:
     @property
     def is_new(self):
         return str(self.pk_val).startswith('C')
+
+    @property
+    def settable_attributes(self):
+        settable_props = [d for (d, s) in self.properties.items() if s]
+        return chain(self._relations, self._attributes, settable_props)
+
+    @property
+    def dirty_properties(self):
+        props = set()
+        for property_name in self.meta.properties:
+            if property_name in self.dirty:
+                props.add(property_name)
+        return props
 
     def delete(self):
         self.connection.delete(self.instance)

@@ -3,6 +3,10 @@ import inspect
 from .utils import State
 
 
+class UncallableMethod(Exception):
+    pass
+
+
 def construct_method(opts, client, method, method_details):
     method = opts.Method(method, method_details, client.connection)
 
@@ -37,6 +41,8 @@ class Method:
         self.kwargsvar = details['kwargsvar']
 
     def __call__(self, obj, *args, **kwargs):
+        if obj._rlc.is_new:
+            raise UncallableMethod("Cannot call methods on new objects.")
         self.validate_params(args, kwargs)
         rlc = obj._rlc
         url = '{}/{}/{}'.format(rlc.method_url, rlc.pk_val, self.name)

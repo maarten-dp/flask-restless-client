@@ -86,9 +86,13 @@ class Connection:
     def create(self, obj, object_dict=None):
         object_dict = object_dict or self.client.serializer.serialize_dirty(
             obj)
-        r = self.request(obj._rlc.base_url,
-                         http_method='post',
-                         json=object_dict)
+
+        property_values = {}
+        for property_name in obj._rlc.dirty_properties:
+            property_values[property_name] = object_dict.pop(property_name)
+
+        url = obj._rlc.base_url
+        r = self.request(url, http_method='post', json=object_dict)
         setattr(obj, obj._rlc.pk_name, r[obj._rlc.pk_name])
 
     @lock_loading

@@ -50,6 +50,14 @@ def test_it_can_get_a_remote_property(mcl):
     assert mcl.Apartment.query.one().some_property == 'a_property_value'
 
 
+def test_it_can_set_a_remote_property(mcl):
+    apt = mcl.Apartment.query.one()
+    assert apt.settable_property == 'ApAntMent'
+    apt.settable_property = 'ApSetMent'
+    mcl.save(apt)
+    assert mcl.Apartment.query.one().settable_property == 'ApSetMent'
+
+
 def test_it_casts_attribute_types_correctly_when_not_marshalling_from_json(
         mcl):
     apt = mcl.Apartment.query.one()

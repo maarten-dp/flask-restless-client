@@ -72,13 +72,13 @@ def filters(app):
 @pytest.fixture
 def cl(app, instances):
     RaiseSession.register('http://app', app)
-    return Client(url='http://app/api', session=RaiseSession(), debug=True)
+    return Client(url='http://app', session=RaiseSession(), debug=True)
 
 
 @pytest.fixture
 def fcl(filters):
     RaiseSession.register('http://app', filters)
-    return Client(url='http://app/api', session=RaiseSession(), debug=True)
+    return Client(url='http://app', session=RaiseSession(), debug=True)
 
 
 @pytest.fixture
@@ -103,6 +103,14 @@ def mcl(app, session, instances):
         @property
         def some_property(self):
             return 'a_property_value'
+
+        @property
+        def settable_property(self):
+            return self.name
+
+        @settable_property.setter
+        def settable_property(self, value):
+            self.name == value
 
         @hybrid_property
         def some_hybrid(self):
@@ -152,4 +160,4 @@ def mcl(app, session, instances):
 
     RaiseSession.register('http://app', app)
 
-    yield Client(url='http://app/api', session=RaiseSession(), debug=True)
+    yield Client(url='http://app', session=RaiseSession(), debug=True)

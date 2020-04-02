@@ -1,10 +1,17 @@
 import logging
 import re
+import warnings
 from contextlib import contextmanager
 from enum import Enum
 
+import crayons
 from dateutil import parser
+from packaging import version
+from pbr.version import VersionInfo
 from pytz import UTC
+
+VERSION = VersionInfo('restless_client').release_string()
+RECOMMENDED_SERVER_VERSION = '0.2.1'
 
 LIKELY_PARSABLE_DATETIME = r"^(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2})|(\d{8}T\d{6}Z?)"
 logger = logging.getLogger('restless-client')
@@ -26,6 +33,7 @@ def generate_id():
 
 
 def urljoin(*args):
+    args = [a.strip('/') for a in args]
     return "/".join(args)
 
 
@@ -121,3 +129,22 @@ def pretty_logger(depth=2):
 
 def get_depth():
     return DEPTH
+
+
+def check_server_compatibility(server_version):
+    message = ("\n\nYour {0} version is more recent than the {1} version, "
+               "incompatibilities may arise.\nConsider downgrading your {0} "
+               "version or upgrading your {1} version.\n\nServer version: {2}"
+               "\nRecommended server version: {3}\n\n")
+
+    params = ('client', 'server', 'N/A', RECOMMENDED_SERVER_VERSION)
+    if server_version:
+        server_version = version.parse(server_version)
+        recommended = version.parse(RECOMMENDED_SERVER_VERSION)
+        versions = (server_version, RECOMMENDED_SERVER_VERSION)
+        if server_version < recommended:
+            params = ('client', 'server', *versions)
+        if server_version > recommended:
+            params = ('server', 'client', *versions)
+
+    warnings.warn(str(crayons.yellow(message.format(*params))))

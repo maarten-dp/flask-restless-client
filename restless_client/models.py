@@ -1,5 +1,4 @@
 import logging
-from itertools import chain
 
 import crayons
 
@@ -44,7 +43,7 @@ class BaseObject:
 
     def __setattr__(self, name, value):
         if not name.startswith('_'):
-            if name not in chain(self._rlc._relations, self._rlc._attributes):
+            if name not in self._rlc.settable_attributes:
                 raise AttributeError('{} has no attribute named {}'.format(
                     self._rlc.class_name, name))
         self._rlc.relhelper.is_valid_instance(name, value)
