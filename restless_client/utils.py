@@ -10,7 +10,7 @@ from packaging import version
 from pbr.version import VersionInfo
 from pytz import UTC
 
-VERSION = VersionInfo('restless_client').release_string()
+VERSION = VersionInfo('flask-restless-client').release_string()
 RECOMMENDED_SERVER_VERSION = '0.2.1'
 
 LIKELY_PARSABLE_DATETIME = r"^(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2})|(\d{8}T\d{6}Z?)"
