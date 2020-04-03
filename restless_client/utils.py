@@ -1,5 +1,4 @@
 import logging
-import os
 import re
 import warnings
 from contextlib import contextmanager
@@ -8,24 +7,10 @@ from enum import Enum
 import crayons
 from dateutil import parser
 from packaging import version
-from pkg_resources import DistributionNotFound, get_distribution
+from pbr.version import VersionInfo
 from pytz import UTC
 
-try:
-    _dist = get_distribution("flask-restless-client")
-
-    # Normalize case for Windows systems
-    dist_loc = os.path.normcase(_dist.location)
-    here = os.path.normcase(__file__)
-
-    if not here.startswith(os.path.join(dist_loc, "flask-restless-client")):
-        # not installed, but there is another version that *is*
-        raise DistributionNotFound
-except DistributionNotFound:
-    VERSION = "Version not found."
-else:
-    VERSION = _dist.version
-
+VERSION = VersionInfo('restless_client').release_string()
 RECOMMENDED_SERVER_VERSION = '0.2.1'
 
 LIKELY_PARSABLE_DATETIME = r"^(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2})|(\d{8}T\d{6}Z?)"
