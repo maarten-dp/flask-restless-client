@@ -4,4 +4,4 @@ ordered-set==3.1
 pbr
 prettytable
 requests
-Serialize
+dateutils
