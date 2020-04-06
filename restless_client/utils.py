@@ -11,7 +11,7 @@ from pbr.version import VersionInfo
 from pytz import UTC
 
 VERSION = VersionInfo('flask-restless-client').release_string()
-RECOMMENDED_SERVER_VERSION = '0.2.1'
+RECOMMENDED_SERVER_VERSION = ['0.2.1', '0.2.2', '0.2.3']
 
 LIKELY_PARSABLE_DATETIME = r"^(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2})|(\d{8}T\d{6}Z?)"
 logger = logging.getLogger('restless-client')
@@ -140,11 +140,14 @@ def check_server_compatibility(server_version):
     params = ('client', 'server', 'N/A', RECOMMENDED_SERVER_VERSION)
     if server_version:
         server_version = version.parse(server_version)
-        recommended = version.parse(RECOMMENDED_SERVER_VERSION)
-        versions = (server_version, RECOMMENDED_SERVER_VERSION)
-        if server_version < recommended:
-            params = ('client', 'server', *versions)
-        if server_version > recommended:
-            params = ('server', 'client', *versions)
+        recommended = [version.parse(v) for v in RECOMMENDED_SERVER_VERSION]
+
+        if server_version in recommended:
+            return
+
+        if server_version < min(recommended):
+            params = ('client', 'server', server_version, min(recommended))
+        if server_version > max(recommended):
+            params = ('server', 'client', server_version, max(recommended))
 
     warnings.warn(str(crayons.yellow(message.format(*params))))
