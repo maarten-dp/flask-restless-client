@@ -1,7 +1,7 @@
 cereal-lazer
 crayons
+dateutils
 ordered-set==3.1
 pbr
 prettytable
 requests
-dateutils
