@@ -31,6 +31,8 @@ class BaseSession(requests.Session):
         raise NotImplementedError()
 
     def request(self, *args, **kwargs):
+        if 'timeout' in self.kwargs:
+            kwargs['timeout'] = self.kwargs['timeout']
         return self.validate_response(super().request(*args, **kwargs))
 
     def validate_response(self, res):

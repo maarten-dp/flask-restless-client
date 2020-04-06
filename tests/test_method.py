@@ -1,6 +1,9 @@
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 
+import pytest
+from requests.exceptions import Timeout
+
 from restless_client import types
 from restless_client.inspect import inspect
 
