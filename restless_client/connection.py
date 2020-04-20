@@ -87,9 +87,9 @@ class Connection:
         object_dict = object_dict or self.client.serializer.serialize_dirty(
             obj)
 
-        property_values = {}
-        for property_name in obj._rlc.dirty_properties:
-            property_values[property_name] = object_dict.pop(property_name)
+        self._push_settable_propperties(obj, object_dict)
+        if not object_dict:
+            return
 
         url = obj._rlc.base_url
         r = self.request(url, http_method='post', json=object_dict)
@@ -99,8 +99,18 @@ class Connection:
     def update(self, obj, object_dict=None):
         object_dict = object_dict or self.client.serializer.serialize_dirty(
             obj)
+
+        self._push_settable_propperties(obj, object_dict)
+        if not object_dict:
+            return
+
         url = urljoin(obj._rlc.base_url, str(obj._rlc.pk_val))
         self.request(url, http_method='put', json=object_dict)
+
+    def _push_settable_propperties(self, obj, object_dict):
+        for property_name in obj._rlc.dirty_properties:
+            prop = getattr(obj.__class__, property_name)
+            prop._commit(obj)
 
     def delete(self, obj):
         if not obj._rlc.is_new:

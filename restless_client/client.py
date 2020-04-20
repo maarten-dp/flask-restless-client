@@ -76,6 +76,8 @@ class Options:
         # how to reach the server when calling an object function
         self.Method = opts.pop('method_class', Method)
         self.ServerProperty = opts.pop('server_property_class', ServerProperty)
+        self.SettableServerProperty = opts.pop(
+            'settable_server_property_class', SettableServerProperty)
 
         self.debug = opts.pop('debug', True)
         self.data_model_endpoint = opts.pop('data_model_endpoint',
@@ -173,9 +175,11 @@ class ClassConstructor:
             attributes[field] = self.opts.LoadableProperty(field)
 
         if self.opts.ServerProperty:
-            for field, url in details['properties'].items():
-                attributes[field] = self.opts.ServerProperty(
-                    field, self.client.connection)
+            for field, settable in details['properties'].items():
+                prop_class = self.opts.ServerProperty
+                if settable:
+                    prop_class = self.opts.SettableServerProperty
+                attributes[field] = prop_class(field, self.client.connection)
 
         if self.opts.Method:
             for method, method_details in details['methods'].items():

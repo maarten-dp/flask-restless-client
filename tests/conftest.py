@@ -110,7 +110,7 @@ def mcl(app, session, instances):
 
         @settable_property.setter
         def settable_property(self, value):
-            self.name == value
+            self.name = value
 
         @hybrid_property
         def some_hybrid(self):
