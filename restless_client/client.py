@@ -244,7 +244,10 @@ class Client:
         return self.state == State.LOADING
 
     def _register(self, obj):
-        self.registry['%s%s' % (obj.__class__.__name__, obj._rlc.pk_val)] = obj
+        self.registry[self._key_from_object(obj)] = obj
+
+    def _key_from_object(self, obj):
+        return '{}{}'.format(obj.__class__.__name__, obj._rlc.pk_val)
 
     def delete(self, instance):
         instance._rlc.delete()
@@ -256,3 +259,6 @@ class Client:
                     obj._rlc.save()
         else:
             instance._rlc.save()
+
+    def refresh(self, instance):
+        instance._rlc.refresh()

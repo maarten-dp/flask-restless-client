@@ -82,6 +82,15 @@ class Connection:
         raw = self.request(urljoin(obj_class._rlc.base_url, str(obj_id)))
         return obj_class(**raw)
 
+    @raise_on_locked
+    @lock_loading
+    def reload(self, obj):
+        raw = self.request(urljoin(obj._rlc.base_url, str(obj._rlc.pk_val)))
+        obj._rlc.values = {}
+        obj._rlc.dirty = set()
+        obj._load(raw)
+        return obj
+
     @lock_loading
     def create(self, obj, object_dict=None):
         object_dict = object_dict or self.client.serializer.serialize_dirty(

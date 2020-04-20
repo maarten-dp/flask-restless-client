@@ -85,6 +85,9 @@ class InstanceState:
             logger.debug("No action needed")
         self.dirty = set()
 
+    def refresh(self):
+        self.client.connection.reload(self.instance)
+
 
 def inspect(obj):
     meta = obj._rlc

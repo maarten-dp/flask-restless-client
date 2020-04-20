@@ -23,6 +23,9 @@ class BaseObject:
         oid = self._rlc.pk_name
         super().__setattr__(oid,
                             kwargs[oid] if oid in kwargs else generate_id())
+        self._load(kwargs)
+
+    def _load(self, kwargs):
         self._rlc.deserializer.load(self, kwargs)
         self._rlc.client._register(self)
 

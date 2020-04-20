@@ -55,7 +55,7 @@ def test_it_can_set_a_remote_property(mcl):
     assert apt.settable_property == 'ApAntMent'
     apt.settable_property = 'ApSetMent'
     mcl.save(apt)
-    assert not apt._rlc.dirty
+    assert not inspect(apt).dirty
     mcl.registry = {}
     assert mcl.Apartment.query.one().settable_property == 'ApSetMent'
 

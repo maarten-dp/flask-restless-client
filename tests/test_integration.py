@@ -164,4 +164,13 @@ def test_it_can_filter_boolean_expressions(cl):
     assert sorted([r.name for r in result]) == sorted(expected)
 
 
+def test_it_can_refresh_an_instance(cl):
+    colony = cl.AntColony.query.get(1)
+    colony.name = "Changed"
+    assert colony.name == "Changed"
+    cl.refresh(colony)
+    assert colony.name == 'Argentine Ant'
+    assert not inspect(colony).dirty
+
+
 # tests not suited for this module, need to be moved
