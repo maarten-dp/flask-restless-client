@@ -138,7 +138,7 @@ class SettableServerProperty(ServerProperty):
         obj._rlc.dirty.add(self.attribute)
 
     def _commit(self, obj):
-        if self.value[obj] == State.VOID:
+        if self.value[obj] is State.VOID:
             return
         url = self.get_url(obj)
         payload = self.cereal.dumps(self.value[obj])
