@@ -69,5 +69,5 @@ class Method:
             TypeError(msg.format(self.name, kwdiff.pop()))
 
         for key, val in list(kwargs.items()):
-            if val == State.VOID:
+            if val is State.VOID:
                 kwargs.pop(key)

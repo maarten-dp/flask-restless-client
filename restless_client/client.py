@@ -129,7 +129,7 @@ class SettableServerProperty(ServerProperty):
         self.value = defaultdict(lambda: State.VOID)
 
     def __get__(self, obj, objtype=None):
-        if self.value[obj] == State.VOID:
+        if self.value[obj] is State.VOID:
             return super().__get__(obj, objtype)
         return self.value[obj]
 
@@ -241,7 +241,7 @@ class Client:
 
     @property
     def is_loading(self):
-        return self.state == State.LOADING
+        return self.state is State.LOADING
 
     def _register(self, obj):
         self.registry[self._key_from_object(obj)] = obj
