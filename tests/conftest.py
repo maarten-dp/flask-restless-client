@@ -94,6 +94,7 @@ def mcl(app, session, instances):
         interval = db.Column(db.Interval())
         binary = db.Column(db.Binary())
         num = db.Column(db.Numeric())
+        boolean = db.Column(db.Boolean, default=True)
 
     db.create_all()
 
@@ -143,6 +144,7 @@ def mcl(app, session, instances):
                 date=date(2018, 1, 1),
                 dt=datetime(2018, 1, 1),
                 json={"awe": "some"},
+                boolean=False,
             )
             session.add(mt)
             session.commit()

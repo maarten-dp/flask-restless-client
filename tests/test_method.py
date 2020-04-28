@@ -69,6 +69,7 @@ def test_it_casts_attribute_types_correctly_when_not_marshalling_from_json(
         "date": date,
         "dt": datetime,
         "json": dict,
+        "boolean": bool
     }
     for key, type_ in expected_types.items():
         assert type(getattr(mt, key)) == type_

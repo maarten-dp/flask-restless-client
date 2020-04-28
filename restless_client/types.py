@@ -32,7 +32,7 @@ def datetime_caster(value):
 def boolean_caster(value):
     if value in ('False', 'false', '0', 'no'):
         return False
-    bool(value)
+    return bool(value)
 
 
 def json_caster(value):
