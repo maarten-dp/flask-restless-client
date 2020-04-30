@@ -93,11 +93,16 @@ class ObjectCollection(list):
     def pprint(self):
         attrs = self.attrs
         # make sure id and name are at the front of the table
-        headers = ['id']
+        pk_name = self.object_class._rlc.pk_name
+        relhelper = self.object_class._rlc.relhelper
+        headers = [pk_name]
         if 'name' in attrs:
             headers.append('name')
-        columns = set(attrs).difference(set(['id', 'name']))
-        relation_columns = [c for c in columns if str(c).endswith('_id')]
+        columns = set(attrs).difference(set([pk_name, 'name']))
+
+        relations = self.object_class._rlc.relations()
+        relation_columns = [relhelper.column_name(c) for c in relations]
+
         data_columns = columns.difference(set(relation_columns))
         # make sure to show the data columns next
         headers.extend(sorted(data_columns))
@@ -113,13 +118,15 @@ class ObjectCollection(list):
             return val
 
         for obj in self:
-            values = obj._values
-            pt.add_row(
-                [truncate(str(values.get(header))) for header in headers])
-        res = pt.get_string(border=False, sortby="id")
+            values = obj._rlc.values
+            vals = [obj._rlc.pk_val]
+            vals.extend(
+                [truncate(str(values.get(header))) for header in headers[1:]])
+            pt.add_row(vals)
+        res = pt.get_string(border=False, sortby=pk_name)
         if not res:
             pt.add_row(['' for header in headers])
-            res = pt.get_string(border=False, sortby="id")
+            res = pt.get_string(border=False, sortby=pk_name)
         return res
 
     def __repr__(self):
