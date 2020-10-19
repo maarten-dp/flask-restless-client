@@ -69,7 +69,7 @@ class FilterNode(FilterMixIn):
         rp = self
         while rp.parent_node:
             rp.parent_node.is_leaf = False
-            if rp.parent_node.rel_type == 'ONETOMANY':
+            if rp.parent_node.rel_type in ['ONETOMANY', 'MANYTOMANY']:
                 rfilter = rp.parent_node.any_(rfilter)
             else:
                 rfilter = rp.parent_node.has_(rfilter)
