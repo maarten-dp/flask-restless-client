@@ -110,6 +110,8 @@ class ObjectDeserializer:
     def handle_o2m(self, obj, field, val, rel_model):
         typed_list = self.opts.TypedListClass(rel_model, obj, field)
         if val is not State.VOID:
+            if val is None:
+                val = []
             for rel_obj in val:
                 if isinstance(rel_obj, dict):
                     rel_obj = rel_model(**rel_obj)
