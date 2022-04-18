@@ -14,7 +14,7 @@ repos:
     - id: check-merge-conflict
     - id: debug-statements
       language: python
-      language_version: python3
+      language_version: python3.7
     - id: requirements-txt-fixer
     - id: name-tests-test
       args: ['--django']
@@ -26,7 +26,7 @@ repos:
       name: flake8
       language: python
       files: \.py$
-      language_version: python3
+      language_version: python3.7
       exclude: tests
       additional_dependencies: ['flake8-builtins']
 
@@ -49,14 +49,14 @@ repos:
     hooks:
     - id: seed-isort-config
       language: python
-      language_version: python3.6
+      language_version: python3.7
 
   - repo: https://github.com/pre-commit/mirrors-isort
     sha: "v4.3.18"
     hooks:
     - id: isort
       language: python
-      language_version: python3.6
+      language_version: python3.7
 
   - repo: https://github.com/pre-commit/mirrors-yapf
     rev: "v0.28.0"
@@ -64,4 +64,4 @@ repos:
     - id: yapf
       args: [-i, -r]
       language: python
-      language_version: python3.6
+      language_version: python3.7
