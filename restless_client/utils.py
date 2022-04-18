@@ -12,7 +12,8 @@ from pytz import UTC
 
 VERSION = VersionInfo('flask-restless-client').release_string()
 RECOMMENDED_SERVER_VERSION = [
-    '0.2.1', '0.2.2', '0.2.3', '0.2.4', '0.2.5', '0.2.6', '0.2.7', '0.2.8', '0.2.9'
+    '0.2.1', '0.2.2', '0.2.3', '0.2.4', '0.2.5', '0.2.6', '0.2.7', '0.2.8',
+    '0.2.9'
 ]
 
 LIKELY_PARSABLE_DATETIME = r"^(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2})|(\d{8}T\d{6}Z?)"
