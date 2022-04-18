@@ -4,7 +4,7 @@ fast-alchemy
 flake8
 
 Flask-Restless==0.17.0
-flask-restless-datamodel==0.2.1
+flask-restless-datamodel==0.2.8
 isort
 
 
