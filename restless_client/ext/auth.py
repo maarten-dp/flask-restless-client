@@ -26,6 +26,8 @@ class BaseSession(requests.Session):
             self.authenticate(url, username, password)
         elif url and token:
             self.authenticate(url, token)
+        if auth := kwargs.get("auth"):
+            self.auth = auth
 
     def authenticate(self, url, username, password=None):
         raise NotImplementedError()
@@ -33,7 +35,7 @@ class BaseSession(requests.Session):
     def request(self, *args, **kwargs):
         if 'timeout' in self.kwargs:
             kwargs['timeout'] = self.kwargs['timeout']
-        return self.validate_response(super().request(*args, **kwargs))
+        return self.validate_response(super().request(*args, auth=self.auth, **kwargs))
 
     def validate_response(self, res):
         # raise an exception if status is 400 or up
