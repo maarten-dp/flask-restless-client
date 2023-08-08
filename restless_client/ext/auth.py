@@ -26,8 +26,7 @@ class BaseSession(requests.Session):
             self.authenticate(url, username, password)
         elif url and token:
             self.authenticate(url, token)
-        if auth := kwargs.get("auth"):
-            self.auth = auth
+        self.auth = kwargs.get("auth")
 
     def authenticate(self, url, username, password=None):
         raise NotImplementedError()
