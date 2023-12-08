@@ -16,7 +16,7 @@ RECOMMENDED_SERVER_VERSION = [
     '0.2.9'
 ]
 
-LIKELY_PARSABLE_DATETIME = r"^(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2})|(\d{8}T\d{6}Z?)"
+LIKELY_PARSABLE_DATETIME = re.compile(r"^(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2})|(\d{8}T\d{6}Z?)")
 logger = logging.getLogger('restless-client')
 
 LOCAL_ID_COUNT = 0
@@ -41,7 +41,7 @@ def urljoin(*args):
 
 
 def datetime_from_value(value, as_timezone):
-    if isinstance(value, str) and re.search(LIKELY_PARSABLE_DATETIME, value):
+    if isinstance(value, str) and LIKELY_PARSABLE_DATETIME.search(value):
         return parser.parse(value).astimezone(as_timezone)
     elif isinstance(value, list):
         for idx, item in enumerate(value):
