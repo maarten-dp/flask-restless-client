@@ -21,6 +21,7 @@ RECOMMENDED_SERVER_VERSION = [
     "0.2.7",
     "0.2.8",
     "0.2.9",
+    "0.3.0",
 ]
 
 LIKELY_PARSABLE_DATETIME = re.compile(
