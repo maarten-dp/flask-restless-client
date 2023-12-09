@@ -1,14 +1,15 @@
 -r requirements.txt
+build
 codecov
 fast-alchemy
 flake8
 
 Flask-Restless==0.17.0
-flask-restless-datamodel==0.2.10
+flask-restless-datamodel==0.3.0
 isort
 
 
-pre-commit==1.15.2
+pre-commit==2.21.0
 
 pytest >= 4.5.0
 pytest-cov
