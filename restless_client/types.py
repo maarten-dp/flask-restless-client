@@ -30,7 +30,7 @@ def datetime_caster(value):
 
 
 def boolean_caster(value):
-    if value in ('False', 'false', '0', 'no'):
+    if value in ("False", "false", "0", "no"):
         return False
     return bool(value)
 
@@ -39,12 +39,12 @@ def json_caster(value):
     return json.loads(value)
 
 
-register_type('date', date_caster)
-register_type('datetime', datetime_caster)
-register_type('utcdatetime', datetime_caster)
-register_type('boolean', boolean_caster)
-register_type('json', json_caster)
-register_type('jsontype', json_caster)
+register_type("date", date_caster)
+register_type("datetime", datetime_caster)
+register_type("utcdatetime", datetime_caster)
+register_type("boolean", boolean_caster)
+register_type("json", json_caster)
+register_type("jsontype", json_caster)
 
 
 def object_hook(model, attribute=None):

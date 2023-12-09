@@ -1,4 +1,4 @@
-__all__ = ('__version__', 'Client', 'inspect')
+__all__ = ("__version__", "Client", "inspect")
 
 from .client import Client  # noqa F401
 from .inspect import inspect  # noqa F401

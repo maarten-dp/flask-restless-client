@@ -52,13 +52,13 @@ def test_it_can_perform_an_all_on_several_pages(session, instances, query):
 
 
 def test_it_can_perform_a_filter(query, cl):
-    expected = 'Specimen-1'
+    expected = "Specimen-1"
     result = query.filter(cl.Formicarium.name == expected).one()
     assert result.name == expected
 
 
 def test_it_can_perform_a_filter_by(query, cl):
-    expected = 'Specimen-1'
+    expected = "Specimen-1"
     query.cls.name = cl.Formicarium.name
     result = query.filter_by(name=expected).one()
     assert result.name == expected
@@ -75,28 +75,27 @@ def test_it_can_perform_an_offset(query):
 
 
 def test_it_can_perform_an_order_by_asc(query):
-    result = query.order_by(name='asc').all()
-    assert result[0].name == 'PAnts'
+    result = query.order_by(name="asc").all()
+    assert result[0].name == "PAnts"
 
 
 def test_it_can_perform_an_order_by_desc(query):
-    result = query.order_by(name='desc').all()
-    assert result[0].name == 'The yard yokels'
+    result = query.order_by(name="desc").all()
+    assert result[0].name == "The yard yokels"
 
 
 def test_it_can_perform_a_first(query):
     result = query.first()
-    assert result.name == 'Specimen-1'
+    assert result.name == "Specimen-1"
 
 
 def test_it_can_perform_a_last(query):
     result = query.last()
-    assert result.name == 'The Free SociAnty'
+    assert result.name == "The Free SociAnty"
 
 
 def test_it_can_perform_a_one_or_none_and_returns_none(query, cl):
-    result = query.filter(
-        cl.Formicarium.name == 'does not exist').one_or_none()
+    result = query.filter(cl.Formicarium.name == "does not exist").one_or_none()
     assert result is None
 
 

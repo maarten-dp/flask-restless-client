@@ -10,14 +10,23 @@ from packaging import version
 from pbr.version import VersionInfo
 from pytz import UTC
 
-VERSION = VersionInfo('flask-restless-client').release_string()
+VERSION = VersionInfo("flask-restless-client").release_string()
 RECOMMENDED_SERVER_VERSION = [
-    '0.2.1', '0.2.2', '0.2.3', '0.2.4', '0.2.5', '0.2.6', '0.2.7', '0.2.8',
-    '0.2.9'
+    "0.2.1",
+    "0.2.2",
+    "0.2.3",
+    "0.2.4",
+    "0.2.5",
+    "0.2.6",
+    "0.2.7",
+    "0.2.8",
+    "0.2.9",
 ]
 
-LIKELY_PARSABLE_DATETIME = re.compile(r"^(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2})|(\d{8}T\d{6}Z?)")
-logger = logging.getLogger('restless-client')
+LIKELY_PARSABLE_DATETIME = re.compile(
+    r"^(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2})|(\d{8}T\d{6}Z?)"
+)
+logger = logging.getLogger("restless-client")
 
 LOCAL_ID_COUNT = 0
 DEPTH = 0
@@ -32,11 +41,11 @@ class State(Enum):
 def generate_id():
     global LOCAL_ID_COUNT
     LOCAL_ID_COUNT += 1
-    return 'C{}'.format(LOCAL_ID_COUNT)
+    return "C{}".format(LOCAL_ID_COUNT)
 
 
 def urljoin(*args):
-    args = [a.strip('/') for a in args]
+    args = [a.strip("/") for a in args]
     return "/".join(args)
 
 
@@ -92,10 +101,10 @@ class RelationHelper:
         self.relations = relations
 
     def type(self, name):  # noqa A003
-        return self.relations[name]['relation_type']
+        return self.relations[name]["relation_type"]
 
     def model_name(self, name):
-        return self.relations[name]['foreign_model']
+        return self.relations[name]["foreign_model"]
 
     def model(self, name):
         return self.client._classes[self.model_name(name)]
@@ -103,23 +112,22 @@ class RelationHelper:
     def column_name(self, name):
         if name not in self.relations:
             return name
-        return self.relations[name].get('local_column', name)
+        return self.relations[name].get("local_column", name)
 
     def backref(self, name):
-        return self.relations[name].get('backref')
+        return self.relations[name].get("backref")
 
     def is_scalar(self, name):
-        return self.type(name) in ('MANYTOONE', 'ONETOONE')
+        return self.type(name) in ("MANYTOONE", "ONETOONE")
 
     def is_valid_instance(self, name, instance):
         if name in self.relations.keys() and self.is_scalar(name):
-            allowed = (self.model(name), self.opts.LoadableProperty,
-                       type(None))
+            allowed = (self.model(name), self.opts.LoadableProperty, type(None))
             if not isinstance(instance, allowed):
-                msg = '{} must be an instance of {}, not {}'
+                msg = "{} must be an instance of {}, not {}"
                 raise Exception(
-                    msg.format(name, self.model_name(name),
-                               instance.__class__.__name__))
+                    msg.format(name, self.model_name(name), instance.__class__.__name__)
+                )
 
 
 @contextmanager
@@ -135,12 +143,14 @@ def get_depth():
 
 
 def check_server_compatibility(server_version):
-    message = ("\n\nYour {0} version is more recent than the {1} version, "
-               "incompatibilities may arise.\nConsider downgrading your {0} "
-               "version or upgrading your {1} version.\n\nServer version: {2}"
-               "\nRecommended server version: {3}\n\n")
+    message = (
+        "\n\nYour {0} version is more recent than the {1} version, "
+        "incompatibilities may arise.\nConsider downgrading your {0} "
+        "version or upgrading your {1} version.\n\nServer version: {2}"
+        "\nRecommended server version: {3}\n\n"
+    )
 
-    params = ('client', 'server', 'N/A', RECOMMENDED_SERVER_VERSION)
+    params = ("client", "server", "N/A", RECOMMENDED_SERVER_VERSION)
     if server_version:
         server_version = version.parse(server_version)
         recommended = [version.parse(v) for v in RECOMMENDED_SERVER_VERSION]
@@ -149,8 +159,8 @@ def check_server_compatibility(server_version):
             return
 
         if server_version < min(recommended):
-            params = ('client', 'server', server_version, min(recommended))
+            params = ("client", "server", server_version, min(recommended))
         if server_version > max(recommended):
-            params = ('server', 'client', server_version, max(recommended))
+            params = ("server", "client", server_version, max(recommended))
 
     warnings.warn(str(crayons.yellow(message.format(*params))))

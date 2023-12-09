@@ -9,7 +9,7 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from .utils import parse_custom_types, urljoin
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-logger = logging.getLogger('restless-client')
+logger = logging.getLogger("restless-client")
 
 
 def get_url(obj):
@@ -19,9 +19,9 @@ def get_url(obj):
 def log(fn):
     @wraps(fn)
     def decorator(*args, **kwargs):
-        logger.debug('kwargs: {}'.format(pprint.pformat(kwargs)))
+        logger.debug("kwargs: {}".format(pprint.pformat(kwargs)))
         res = fn(*args, **kwargs)
-        logger.debug('result: {}'.format(pprint.pformat(res)))
+        logger.debug("result: {}".format(pprint.pformat(res)))
         return res
 
     return decorator
@@ -45,7 +45,7 @@ def raise_on_locked(fn):
         """
         client = obj._rlc.client
         if client.is_loading and client.opts.debug:
-            raise Exception('Loading is locked')
+            raise Exception("Loading is locked")
         return fn(self, obj, *args, **kwargs)
 
     return decorator
@@ -66,15 +66,16 @@ class Connection:
             return obj_class(**raw)
 
         # iterate over pages
-        objects = raw['objects']
-        for page in range(2, raw['total_pages'] + 1):
-            kwargs['page'] = page
+        objects = raw["objects"]
+        for page in range(2, raw["total_pages"] + 1):
+            kwargs["page"] = page
             objects.extend(
-                self.request(obj_class._rlc.base_url,
-                             params=kwargs)['objects'])
+                self.request(obj_class._rlc.base_url, params=kwargs)["objects"]
+            )
 
         return self.opts.CollectionClass(
-            obj_class, OrderedSet([obj_class(**obj) for obj in objects]))
+            obj_class, OrderedSet([obj_class(**obj) for obj in objects])
+        )
 
     @raise_on_locked
     @lock_loading
@@ -93,28 +94,26 @@ class Connection:
 
     @lock_loading
     def create(self, obj, object_dict=None):
-        object_dict = object_dict or self.client.serializer.serialize_dirty(
-            obj)
+        object_dict = object_dict or self.client.serializer.serialize_dirty(obj)
 
         self._push_settable_propperties(obj, object_dict)
         if not object_dict:
             return
 
         url = obj._rlc.base_url
-        r = self.request(url, http_method='post', json=object_dict)
+        r = self.request(url, http_method="post", json=object_dict)
         setattr(obj, obj._rlc.pk_name, r[obj._rlc.pk_name])
 
     @lock_loading
     def update(self, obj, object_dict=None):
-        object_dict = object_dict or self.client.serializer.serialize_dirty(
-            obj)
+        object_dict = object_dict or self.client.serializer.serialize_dirty(obj)
 
         self._push_settable_propperties(obj, object_dict)
         if not object_dict:
             return
 
         url = urljoin(obj._rlc.base_url, str(obj._rlc.pk_val))
-        self.request(url, http_method='put', json=object_dict)
+        self.request(url, http_method="put", json=object_dict)
 
     def _push_settable_propperties(self, obj, object_dict):
         for property_name in obj._rlc.dirty_properties:
@@ -124,15 +123,17 @@ class Connection:
     def delete(self, obj):
         if not obj._rlc.is_new:
             url = urljoin(obj._rlc.base_url, str(obj._rlc.pk_val))
-            self.request(url, http_method='delete')
+            self.request(url, http_method="delete")
 
     @log
     def request(self, url, **kwargs):
-        method = kwargs.pop('http_method', 'get')
+        method = kwargs.pop("http_method", "get")
         fn = getattr(self.session, method)
         r = fn(url, **kwargs)
-        if method == 'delete':
+        if method == "delete":
             return
 
-        result = r.json(object_hook=partial(parse_custom_types, **kwargs), )
+        result = r.json(
+            object_hook=partial(parse_custom_types, **kwargs),
+        )
         return result

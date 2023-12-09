@@ -2,7 +2,7 @@ import logging
 
 from prettytable import PrettyTable
 
-logger = logging.getLogger('restless-client')
+logger = logging.getLogger("restless-client")
 
 
 def update_backref(remove):
@@ -31,7 +31,7 @@ class TypedList(list):
     def append(self, item):
         if not isinstance(item, self.type):
             cls_name = item.__class__.__name__
-            msg = 'Only {} can be added, {} provided'
+            msg = "Only {} can be added, {} provided"
             raise TypeError(msg.format(self.type.__name__, cls_name))
         list.append(self, item)
 
@@ -51,8 +51,9 @@ class TypedList(list):
         relhelper = self.parent._rlc.relhelper
         backref = relhelper.backref(attr)
         if backref:
-            msg = 'Updating {} backref {}.{}'.format(
-                item._rlc.relhelper.type(backref), item, backref)
+            msg = "Updating {} backref {}.{}".format(
+                item._rlc.relhelper.type(backref), item, backref
+            )
             if item._rlc.relhelper.is_scalar(backref):
                 value = None if remove else self.parent
                 logger.debug(msg)
@@ -80,7 +81,7 @@ class ObjectCollection(list):
 
     def one(self):
         if len(self) > 1:
-            raise ValueError('more than one result')
+            raise ValueError("more than one result")
         return self.first()
 
     def __getitem__(self, key):
@@ -96,9 +97,9 @@ class ObjectCollection(list):
         pk_name = self.object_class._rlc.pk_name
         relhelper = self.object_class._rlc.relhelper
         headers = [pk_name]
-        if 'name' in attrs:
-            headers.append('name')
-        columns = set(attrs).difference(set([pk_name, 'name']))
+        if "name" in attrs:
+            headers.append("name")
+        columns = set(attrs).difference(set([pk_name, "name"]))
 
         relations = self.object_class._rlc.relations()
         relation_columns = [relhelper.column_name(c) for c in relations]
@@ -109,23 +110,22 @@ class ObjectCollection(list):
         # then show relation columns
         headers.extend(sorted(relation_columns))
         pt = PrettyTable(headers)
-        pt.align = 'l'
+        pt.align = "l"
 
         def truncate(val):
-            val = val.replace('\n', '')
+            val = val.replace("\n", "")
             if len(val) > 25:
-                val = '{}...'.format(val[:22])
+                val = "{}...".format(val[:22])
             return val
 
         for obj in self:
             values = obj._rlc.values
             vals = [obj._rlc.pk_val]
-            vals.extend(
-                [truncate(str(values.get(header))) for header in headers[1:]])
+            vals.extend([truncate(str(values.get(header))) for header in headers[1:]])
             pt.add_row(vals)
         res = pt.get_string(border=False, sortby=pk_name)
         if not res:
-            pt.add_row(['' for header in headers])
+            pt.add_row(["" for header in headers])
             res = pt.get_string(border=False, sortby=pk_name)
         return res
 

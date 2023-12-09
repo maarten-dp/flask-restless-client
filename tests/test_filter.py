@@ -69,8 +69,7 @@ def test_in(fcl):
 
 def test_mix_of_things(fcl):
     o = fcl.Object1
-    res = o.query.filter(o.attribute2.in_([2, 3, 4, 5]), o.id > 2,
-                         o.id < 5).all()
+    res = o.query.filter(o.attribute2.in_([2, 3, 4, 5]), o.id > 2, o.id < 5).all()
     assert len(res) == 2
     assert sorted([ob.id for ob in res]) == [3, 4]
     assert sorted([ob.attribute2 for ob in res]) == [3, 4]
@@ -109,34 +108,28 @@ def test_filter_by(fcl):
 
 def test_raw_filter():
     f = FilterMixIn()
-    f.attribute = 'test'
-    expected = {'name': 'test', 'op': '!=', 'val': 2}
+    f.attribute = "test"
+    expected = {"name": "test", "op": "!=", "val": 2}
     assert (~(f == 2)).to_raw_filter() == expected
 
 
 def test_complex_filter():
     f = FilterMixIn()
-    f.attribute = 'test'
+    f.attribute = "test"
     expected = {
-        'or': [{
-            'and': [{
-                'name': 'test',
-                'op': 'has',
-                'val': {
-                    'name': 'test',
-                    'op': '==',
-                    'val': 2
-                }
-            }, {
-                'name': 'test',
-                'op': 'not_in',
-                'val': [1, 2, 3]
-            }]
-        }, {
-            'name': 'test',
-            'op': '>=',
-            'val': 5
-        }]
+        "or": [
+            {
+                "and": [
+                    {
+                        "name": "test",
+                        "op": "has",
+                        "val": {"name": "test", "op": "==", "val": 2},
+                    },
+                    {"name": "test", "op": "not_in", "val": [1, 2, 3]},
+                ]
+            },
+            {"name": "test", "op": ">=", "val": 5},
+        ]
     }
     res = (f.has_((f == 2)) & (~f.in_([1, 2, 3])) | (f >= 5)).to_raw_filter()
     assert res == expected
@@ -146,17 +139,13 @@ def test_o2m_relation_filter(fcl):
     o = fcl.Object2
     f = o.relation1.relation2.attribute1 == "o3a11"
     expected = {
-        'name': 'relation1',
-        'op': 'has',
-        'val': {
-            'name': 'relation2',
-            'op': 'has',
-            'val': {
-                'name': 'attribute1',
-                'op': '==',
-                'val': 'o3a11'
-            }
-        }
+        "name": "relation1",
+        "op": "has",
+        "val": {
+            "name": "relation2",
+            "op": "has",
+            "val": {"name": "attribute1", "op": "==", "val": "o3a11"},
+        },
     }
     assert f.to_raw_filter() == expected
 
@@ -165,17 +154,13 @@ def test_m2o_relation_filter(fcl):
     o = fcl.Object3
     f = o.relation2.relation1.attribute1 == "o2a13"
     expected = {
-        'name': 'relation2',
-        'op': 'any',
-        'val': {
-            'name': 'relation1',
-            'op': 'any',
-            'val': {
-                'name': 'attribute1',
-                'op': '==',
-                'val': 'o2a13'
-            }
-        }
+        "name": "relation2",
+        "op": "any",
+        "val": {
+            "name": "relation1",
+            "op": "any",
+            "val": {"name": "attribute1", "op": "==", "val": "o2a13"},
+        },
     }
     assert f.to_raw_filter() == expected
 
@@ -184,17 +169,13 @@ def test_mix_relation_filter(fcl):
     o = fcl.Object1
     f = o.relation1.relation1.attribute1 == "o1a11"
     expected = {
-        'name': 'relation1',
-        'op': 'any',
-        'val': {
-            'name': 'relation1',
-            'op': 'has',
-            'val': {
-                'name': 'attribute1',
-                'op': '==',
-                'val': 'o1a11'
-            }
-        }
+        "name": "relation1",
+        "op": "any",
+        "val": {
+            "name": "relation1",
+            "op": "has",
+            "val": {"name": "attribute1", "op": "==", "val": "o1a11"},
+        },
     }
     assert f.to_raw_filter() == expected
 

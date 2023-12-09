@@ -7,16 +7,18 @@ import crayons
 from .types import cast_type, object_hook_emit
 from .utils import State, pretty_logger
 
-logger = logging.getLogger('restless-client')
-LOAD_MSG = 'loading {}.{} with value {}'
+logger = logging.getLogger("restless-client")
+LOAD_MSG = "loading {}.{} with value {}"
 
 
-def log(o, a, v, attr_color='red'):
+def log(o, a, v, attr_color="red"):
     logger.info(
         LOAD_MSG.format(
             crayons.yellow(o.__class__.__name__, always=True, bold=True),
             getattr(crayons, attr_color)(a, always=True, bold=True),
-            crayons.green(str(v)[:150], always=True, bold=True)))
+            crayons.green(str(v)[:150], always=True, bold=True),
+        )
+    )
 
 
 def log_loading(color):
@@ -96,17 +98,17 @@ class ObjectDeserializer:
 
     def handle_relations(self, obj, raw):
         relation_type_handlers = {
-            'ONETOMANY': self.handle_o2m,
-            'MANYTOONE': self.handle_m2o,
-            'ONETOONE': self.handle_o2o,
-            'MANYTOMANY': self.handle_o2m,
+            "ONETOMANY": self.handle_o2m,
+            "MANYTOONE": self.handle_m2o,
+            "ONETOONE": self.handle_o2o,
+            "MANYTOMANY": self.handle_o2m,
         }
         for field in obj._rlc._relations.keys():
             val = raw.get(field, State.VOID)
             handler = relation_type_handlers[obj._rlc.relhelper.type(field)]
             handler(obj, field, val, obj._rlc.relhelper.model(field))
 
-    @log_loading('blue')
+    @log_loading("blue")
     def handle_o2m(self, obj, field, val, rel_model):
         typed_list = self.opts.TypedListClass(rel_model, obj, field)
         if val is not State.VOID:
@@ -121,14 +123,14 @@ class ObjectDeserializer:
         elif obj._rlc.is_new:
             set_attr(obj, field, typed_list)
 
-    @log_loading('cyan')
+    @log_loading("cyan")
     def handle_m2o(self, obj, field, val, rel_model):
         if isinstance(val, dict):
             val = rel_model(**val)
-        if hasattr(val.__class__, '__bases__'):
+        if hasattr(val.__class__, "__bases__"):
             if self.opts.BaseObject in val.__class__.__bases__:
                 set_attr(obj, field, val)
 
-    @log_loading('magenta')
+    @log_loading("magenta")
     def handle_o2o(self, obj, field, val, rel_model):
         self.handle_m2o(obj, field, val, rel_model)

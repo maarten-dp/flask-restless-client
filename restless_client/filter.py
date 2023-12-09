@@ -3,10 +3,17 @@ import logging
 
 from .inspect import inspect
 
-logger = logging.getLogger('restless-client')
+logger = logging.getLogger("restless-client")
 
-INVERT_OPERATORS = [('==', '!='), ('>', '<='), ('<', '>='), ('>=', '<'),
-                    ('<=', '>'), ('in', 'not_in'), ('is_null', 'is_not_null')]
+INVERT_OPERATORS = [
+    ("==", "!="),
+    (">", "<="),
+    ("<", ">="),
+    (">=", "<"),
+    ("<=", ">"),
+    ("in", "not_in"),
+    ("is_null", "is_not_null"),
+]
 INVERT_MAPPING = {}
 for a, b in INVERT_OPERATORS:
     INVERT_MAPPING[a] = b
@@ -14,9 +21,9 @@ for a, b in INVERT_OPERATORS:
 
 
 def is_filter_result(f, operator):
-    assert isinstance(
-        f,
-        (BooleanResult, ComparisonResult)), 'Wrong use of {}'.format(operator)
+    assert isinstance(f, (BooleanResult, ComparisonResult)), "Wrong use of {}".format(
+        operator
+    )
 
 
 class FilterCollection(list):
@@ -31,10 +38,10 @@ class BooleanResult:
         self.collection = collection
 
     def __and__(self, other):
-        return self.__boolean_operator('and', other)
+        return self.__boolean_operator("and", other)
 
     def __or__(self, other):
-        return self.__boolean_operator('or', other)
+        return self.__boolean_operator("or", other)
 
     def __boolean_operator(self, operator, other):
         is_filter_result(self, operator)
@@ -59,15 +66,14 @@ class ComparisonResult:
 
     def __invert__(self):
         if self.op not in INVERT_MAPPING:
-            raise Exception('{} is not a valid invert candidate'.format(
-                self.op))
+            raise Exception("{} is not a valid invert candidate".format(self.op))
         return ComparisonResult(self.name, INVERT_MAPPING[self.op], self.val)
 
     def __and__(self, other):
-        return self.__boolean_operator('and', other)
+        return self.__boolean_operator("and", other)
 
     def __or__(self, other):
-        return self.__boolean_operator('or', other)
+        return self.__boolean_operator("or", other)
 
     def __boolean_operator(self, operator, other):
         is_filter_result(self, operator)
@@ -86,36 +92,36 @@ class ComparisonResult:
 
 class FilterMixIn:
     def __eq__(self, other):
-        return self._assemble_filter('==', other)
+        return self._assemble_filter("==", other)
 
     def __ne__(self, other):
-        return self._assemble_filter('!=', other)
+        return self._assemble_filter("!=", other)
 
     def __gt__(self, other):
-        return self._assemble_filter('>', other)
+        return self._assemble_filter(">", other)
 
     def __ge__(self, other):
-        return self._assemble_filter('>=', other)
+        return self._assemble_filter(">=", other)
 
     def __lt__(self, other):
-        return self._assemble_filter('<', other)
+        return self._assemble_filter("<", other)
 
     def __le__(self, other):
-        return self._assemble_filter('<=', other)
+        return self._assemble_filter("<=", other)
 
     def in_(self, items):
-        return self._assemble_filter('in', items)
+        return self._assemble_filter("in", items)
 
     def has_(self, comparison_result):
         assert isinstance(comparison_result, ComparisonResult)
-        return self._assemble_filter('has', comparison_result.to_raw_filter())
+        return self._assemble_filter("has", comparison_result.to_raw_filter())
 
     def any_(self, comparison_result):
         assert isinstance(comparison_result, ComparisonResult)
-        return self._assemble_filter('any', comparison_result.to_raw_filter())
+        return self._assemble_filter("any", comparison_result.to_raw_filter())
 
     def like_(self, other):
-        return self._assemble_filter('like', other)
+        return self._assemble_filter("like", other)
 
     def _assemble_filter(self, op, val):
         return ComparisonResult(self.attribute, op, self._clean(val))
@@ -131,11 +137,11 @@ class QueryFactory:
 
     def __get__(self, obj, objtype=None):
         if obj:
-            raise AttributeError('Cannot call query on from an instance')
+            raise AttributeError("Cannot call query on from an instance")
         return Query(self.connection, self.cls)
 
     def __set__(self, obj, value):
-        raise ValueError('Cannot set query')
+        raise ValueError("Cannot set query")
 
 
 class Query:
@@ -147,11 +153,11 @@ class Query:
     def filter(self, *queries):  # noqa A003
         q = []
         for query in queries:
-            is_filter_result(query, 'filter')
+            is_filter_result(query, "filter")
             q.append(query.to_raw_filter())
-        if not self._query.get('filters'):
-            self._query['filters'] = []
-        self._query['filters'].extend(q)
+        if not self._query.get("filters"):
+            self._query["filters"] = []
+        self._query["filters"].extend(q)
         return self
 
     def filter_by(self, **kwargs):
@@ -162,12 +168,12 @@ class Query:
 
     def limit(self, limit):
         assert int(limit)
-        self._query['limit'] = limit
+        self._query["limit"] = limit
         return self
 
     def offset(self, offset):
         assert int(offset)
-        self._query['offset'] = offset
+        self._query["offset"] = offset
         return self
 
     def order_by(self, **kwargs):
@@ -175,46 +181,46 @@ class Query:
         for attr, direction in kwargs.items():
             order_by.append({"field": attr, "direction": direction})
         if order_by:
-            self._query['order_by'] = order_by
+            self._query["order_by"] = order_by
         return self
 
     def group_by(self, *group_by):
         if group_by:
-            self._query['group_by'] = group_by
+            self._query["group_by"] = group_by
         return self
 
     def first(self):
         self.limit(1)
-        self.order_by(**{self.cls._rlc.pk_name: 'asc'})
+        self.order_by(**{self.cls._rlc.pk_name: "asc"})
         return self.one()
 
     def last(self):
         self.limit(1)
-        self.order_by(**{self.cls._rlc.pk_name: 'desc'})
+        self.order_by(**{self.cls._rlc.pk_name: "desc"})
         return self.one()
 
     def one(self):
-        self._query['single'] = True
-        kwargs = {'single': True}
+        self._query["single"] = True
+        kwargs = {"single": True}
         if self._query:
-            kwargs['q'] = self._get_query()
+            kwargs["q"] = self._get_query()
         return self.connection.load_query(self.cls, **kwargs)
 
     def one_or_none(self):
         try:
             return self.one()
         except Exception as e:
-            if 'Multiple results found' in str(e):
+            if "Multiple results found" in str(e):
                 raise e
 
     def all(self):  # noqa A003
         kwargs = {}
         if self._query:
-            kwargs['q'] = self._get_query()
+            kwargs["q"] = self._get_query()
         return self.connection.load_query(self.cls, **kwargs)
 
     def get(self, oid):
-        registry_id = '{}{}'.format(self.cls.__name__, oid)
+        registry_id = "{}{}".format(self.cls.__name__, oid)
         meta = inspect(self.cls)
         if registry_id in meta.client.registry:
             return meta.client.registry[registry_id]

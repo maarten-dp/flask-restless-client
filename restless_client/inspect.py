@@ -2,13 +2,25 @@ import inspect as p_inspect
 import logging
 from itertools import chain
 
-logger = logging.getLogger('restless-client')
+logger = logging.getLogger("restless-client")
 
 
 class ModelMeta:
-    def __init__(self, client, class_name, pk_name, attributes, properties,
-                 relations, methods, base_url, method_url, property_url,
-                 polymorphic, relhelper):
+    def __init__(
+        self,
+        client,
+        class_name,
+        pk_name,
+        attributes,
+        properties,
+        relations,
+        methods,
+        base_url,
+        method_url,
+        property_url,
+        polymorphic,
+        relhelper,
+    ):
         self.client = client
         self.connection = client.connection
 
@@ -47,7 +59,7 @@ class InstanceState:
         self.values = {}
 
     def __getattribute__(self, attrib):
-        meta = super().__getattribute__('meta')
+        meta = super().__getattribute__("meta")
         if hasattr(meta, attrib):
             return getattr(meta, attrib)
         return super().__getattribute__(attrib)
@@ -58,7 +70,7 @@ class InstanceState:
 
     @property
     def is_new(self):
-        return str(self.pk_val).startswith('C')
+        return str(self.pk_val).startswith("C")
 
     @property
     def settable_attributes(self):
